@@ -22,6 +22,7 @@ export const Route = createFileRoute("/dashboard")({
 type Profile = {
   id: string; username: string; display_name: string | null; bio: string | null;
   avatar_url: string | null; background_url: string | null; accent_color: string;
+  song_url: string | null; video_url: string | null; photo_url: string | null;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -113,6 +114,7 @@ function Dashboard() {
     const { error } = await supabase.from("profiles").update({
       username: profile.username, display_name: profile.display_name, bio: profile.bio,
       avatar_url: profile.avatar_url, background_url: profile.background_url, accent_color: profile.accent_color,
+      song_url: profile.song_url, video_url: profile.video_url, photo_url: profile.photo_url,
     }).eq("id", profile.id);
     setSaving(false);
     if (error) toast.error(error.message); else toast.success("saved!");
@@ -277,6 +279,18 @@ function Dashboard() {
             </Field>
             <Field label="background image url">
               <input value={profile.background_url ?? ""} onChange={(e) => setProfile({ ...profile, background_url: e.target.value })} className="input" placeholder="https://..." />
+            </Field>
+            <Field label="showcase photo url">
+              <input value={profile.photo_url ?? ""} onChange={(e) => setProfile({ ...profile, photo_url: e.target.value })} className="input" placeholder="https://..." />
+              <div className="mt-1 text-[11px] text-muted-foreground">an extra photo shown on your page, separate from your avatar</div>
+            </Field>
+            <Field label="song">
+              <input value={profile.song_url ?? ""} onChange={(e) => setProfile({ ...profile, song_url: e.target.value })} className="input" placeholder="spotify, soundcloud, apple music, or a direct .mp3 link" />
+              <div className="mt-1 text-[11px] text-muted-foreground">paste a spotify/soundcloud/apple music track link, or a direct audio file url</div>
+            </Field>
+            <Field label="video">
+              <input value={profile.video_url ?? ""} onChange={(e) => setProfile({ ...profile, video_url: e.target.value })} className="input" placeholder="youtube, vimeo, or a direct .mp4 link" />
+              <div className="mt-1 text-[11px] text-muted-foreground">paste a youtube/vimeo link, or a direct video file url</div>
             </Field>
             <Field label="accent color">
               <div className="flex items-center gap-2">
@@ -524,7 +538,7 @@ function DomainPanel({ domain, onConnect, onRemove }: { domain: Domain | null; o
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="mt-6 rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-5">
+    <div className="mt-6 animate-fade-up rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-5 transition duration-300 hover:border-primary/30 hover:shadow-[0_0_30px_-10px_var(--color-primary)]">
       <div className="flex items-center justify-between mb-4">
         <div className="font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground">{title}</div>
         {action}
