@@ -171,8 +171,11 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          photo_url: string | null
+          song_url: string | null
           updated_at: string
           username: string
+          video_url: string | null
           view_count: number
         }
         Insert: {
@@ -183,8 +186,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          photo_url?: string | null
+          song_url?: string | null
           updated_at?: string
           username: string
+          video_url?: string | null
           view_count?: number
         }
         Update: {
@@ -195,8 +201,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          photo_url?: string | null
+          song_url?: string | null
           updated_at?: string
           username?: string
+          video_url?: string | null
           view_count?: number
         }
         Relationships: []
