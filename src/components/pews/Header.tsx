@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/pews-logo.png";
 
 export function Header() {
   const { user, loading } = useSession();
@@ -22,7 +23,13 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur-xl bg-background/40 border-b border-border">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link to="/" className="font-display text-xl font-bold text-gradient">pews</Link>
+        <Link to="/" className="group flex items-center gap-2 font-display text-xl font-bold text-gradient">
+          <span className="relative flex h-7 w-7 items-center justify-center">
+            <span className="absolute inset-0 rounded-full bg-primary/30 blur-md opacity-0 transition duration-300 group-hover:opacity-100" />
+            <img src={logo} alt="" className="relative h-7 w-7 rounded-md object-cover transition duration-300 group-hover:scale-110 group-hover:rotate-3" />
+          </span>
+          pews
+        </Link>
         <nav className="flex items-center gap-2 text-sm">
           {loading ? null : user ? (
             <>
