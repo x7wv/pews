@@ -119,3 +119,51 @@
   background-size: 200% 100%;
   animation: shimmer 3s linear infinite;
 }
+
+@utility input {
+  width: 100%;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  background: oklch(1 0 0 / 4%);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.input::placeholder { color: var(--color-muted-foreground); }
+.input:hover { background: oklch(1 0 0 / 6%); }
+.input:focus {
+  border-color: oklch(0.62 0.19 250 / 60%);
+  box-shadow: 0 0 0 3px oklch(0.62 0.19 250 / 15%);
+  background: oklch(1 0 0 / 6%);
+}
+
+@utility btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.btn-sm:hover { background: oklch(0.62 0.19 250 / 90%); transform: translateY(-1px); box-shadow: 0 6px 20px -6px oklch(0.62 0.19 250 / 60%); }
+.btn-sm:active { transform: translateY(0); }
+
+@utility btn-sm-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.btn-sm-ghost:hover { color: var(--color-foreground); background: oklch(1 0 0 / 6%); transform: translateY(-1px); }
