@@ -61,8 +61,8 @@ function Landing() {
 
       {/* HERO */}
       <section className="relative z-10 mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 pt-20 text-center">
-        <div className="mb-6 rounded-full border border-border bg-card/40 px-4 py-1.5 text-[11px] font-mono uppercase tracking-widest text-muted-foreground animate-fade-up">
-          <span className="text-primary">●</span> now in beta · claim your name
+        <div className="mb-6 animate-fade-up rounded-full border border-border bg-card/40 px-4 py-1.5 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
+          <span className="inline-block animate-pulse-glow rounded-full text-primary">●</span> now in beta · claim your name
         </div>
         <h1 className="font-display text-6xl md:text-8xl font-bold tracking-tight text-gradient animate-fade-up" style={{ animationDelay: "0.05s" }}>
           one link. all you.
@@ -83,7 +83,7 @@ function Landing() {
           <div className="pl-3 text-sm font-mono text-muted-foreground">pews.lol/u/</div>
           <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="yourname"
             className="flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
-          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition">
+          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-200 hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_var(--color-primary)] active:translate-y-0">
             claim →
           </button>
         </form>
@@ -112,9 +112,11 @@ function Landing() {
             { t: "qr codes", d: "instant QR for your profile — download, print, share IRL.", i: "▩" },
             { t: "themes", d: "save multiple visual themes. swap your vibe in one click.", i: "✨" },
             { t: "custom domains", d: "point your own domain at your pews page. yourname.com.", i: "🌐" },
-          ].map((f) => (
-            <div key={f.t} className="group rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 hover:-translate-y-1 transition">
-              <div className="text-3xl mb-3">{f.i}</div>
+          ].map((f, i) => (
+            <div key={f.t}
+              className="group animate-fade-up rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_var(--color-primary)]"
+              style={{ animationDelay: `${i * 60}ms` }}>
+              <div className="text-3xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">{f.i}</div>
               <div className="text-sm font-semibold text-gradient">{f.t}</div>
               <div className="mt-2 text-sm text-muted-foreground">{f.d}</div>
             </div>
@@ -133,8 +135,10 @@ function Landing() {
             { n: "01", t: "claim your name", d: "sign up with google or email. pick your @handle." },
             { n: "02", t: "customize", d: "upload avatar, drop bio, pick a theme, add links + socials." },
             { n: "03", t: "share", d: "one link. QR code. or your own domain. all yours." },
-          ].map((s) => (
-            <div key={s.n} className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+          ].map((s, i) => (
+            <div key={s.n}
+              className="animate-fade-up rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40"
+              style={{ animationDelay: `${i * 80}ms` }}>
               <div className="font-mono text-primary text-xs">{s.n}</div>
               <div className="mt-2 font-display text-xl font-bold">{s.t}</div>
               <div className="mt-2 text-sm text-muted-foreground">{s.d}</div>
