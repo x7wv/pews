@@ -1,0 +1,34 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session, User } from "@supabase/supabase-js";
+
+export function useSession() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+  return { session, user: session?.user ?? null as User | null, loading };
+}
+
+export function getOrCreateSessionToken(): string {
+  if (typeof window === "undefined") return "";
+  let t = localStorage.getItem("pews:vt");
+  if (!t) {
+    t = crypto.randomUUID();
+    localStorage.setItem("pews:vt", t);
+  }
+  return t;
+}
