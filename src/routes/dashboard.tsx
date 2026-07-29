@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth";
 import { toast } from "sonner";
 import { Header } from "@/components/pews/Header";
 import { QRCodeCard } from "@/components/pews/QRCode";
+import { PLATFORM_ICONS } from "@/lib/platform-icons";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -29,7 +30,12 @@ type Theme = { id: string; name: string; accent_color: string; background_url: s
 type Domain = { id: string; domain: string; verification_token: string; status: string };
 type ClickRow = { link_id: string; created_at: string };
 
-const PLATFORMS = ["discord", "twitter", "instagram", "github", "spotify", "youtube", "tiktok", "twitch", "website"];
+const PLATFORMS = [
+  "discord", "twitter", "instagram", "github", "spotify", "youtube", "tiktok", "twitch", "website",
+  "facebook", "linkedin", "telegram", "reddit", "snapchat", "threads", "bluesky",
+  "bitcoin", "ethereum", "wallet",
+];
+const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "wallet"]);
 const TABS = ["profile", "links", "analytics", "themes", "domain", "share"] as const;
 type Tab = typeof TABS[number];
 
@@ -287,10 +293,22 @@ function Dashboard() {
               {socials.length === 0 && <Empty>no socials yet.</Empty>}
               {socials.map((s) => (
                 <div key={s.id} className="flex items-center gap-2">
-                  <select value={s.platform} onChange={(e) => updateSocial(s.id, { platform: e.target.value })} className="input w-32">
-                    {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                  <input value={s.url} onChange={(e) => updateSocial(s.id, { url: e.target.value })} placeholder="https://..." className="input flex-1" />
+                  <div className="flex items-center gap-2 rounded-xl border border-border bg-background/30 px-2">
+                    <span className="text-muted-foreground flex-shrink-0">{PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website}</span>
+                    <select
+                      value={s.platform}
+                      onChange={(e) => updateSocial(s.id, { platform: e.target.value })}
+                      className="w-32 bg-transparent py-2 text-sm outline-none appearance-none">
+                      {PLATFORMS.map((p) => (
+                        <option key={p} value={p} className="bg-background text-foreground">{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <input
+                    value={s.url}
+                    onChange={(e) => updateSocial(s.id, { url: e.target.value })}
+                    placeholder={CRYPTO_PLATFORMS.has(s.platform) ? "wallet address" : "https://..."}
+                    className="input flex-1" />
                   <button onClick={() => deleteSocial(s.id)} className="btn-sm-ghost">×</button>
                 </div>
               ))}
