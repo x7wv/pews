@@ -39,6 +39,7 @@ export const Route = createFileRoute("/u/$username")({
 });
 
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
+import { songEmbedUrl, videoEmbedUrl } from "@/lib/media-embed";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "wallet"]);
 
 function Particles({ color }: { color: string }) {
@@ -139,7 +140,7 @@ function PublicProfile() {
           className="w-full rounded-3xl border border-border bg-card/40 backdrop-blur-2xl p-8 shadow-2xl transition-transform duration-200 will-change-transform"
           style={{ boxShadow: `0 30px 80px -20px oklch(0 0 0 / 0.8), 0 0 0 1px oklch(1 0 0 / 0.05), inset 0 1px 0 oklch(1 0 0 / 0.08)` }}
         >
-          <div className="flex flex-col items-center animate-fade-up">
+          <div className="flex flex-col items-center animate-fade-up" style={{ animationDelay: "0ms" }}>
             <div className="relative">
               <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 40px ${accent}80, 0 0 80px ${accent}40` }} />
               <img src={avatar} alt={displayName} className="relative w-32 h-32 rounded-full object-cover border-2" style={{ borderColor: `${accent}99` }} />
@@ -155,7 +156,7 @@ function PublicProfile() {
           </div>
 
           {/* Stats */}
-          <div className="mt-6 grid grid-cols-3 gap-2 animate-fade-up">
+          <div className="mt-6 grid grid-cols-3 gap-2 animate-fade-up" style={{ animationDelay: "80ms" }}>
             {[
               { label: "views", value: views.toLocaleString() },
               { label: "links", value: links.length.toString() },
@@ -170,7 +171,7 @@ function PublicProfile() {
 
           {/* Socials */}
           {socials.length > 0 && (
-            <div className="mt-6 grid gap-2 animate-fade-up" style={{ gridTemplateColumns: `repeat(${Math.min(socials.length, 6)}, minmax(0, 1fr))` }}>
+            <div className="mt-6 grid gap-2 animate-fade-up" style={{ gridTemplateColumns: `repeat(${Math.min(socials.length, 6)}, minmax(0, 1fr))`, animationDelay: "160ms" }}>
               {socials.map((s: { id: string; platform: string; url: string }) => {
                 const isCrypto = CRYPTO_PLATFORMS.has(s.platform);
                 const shared = "group relative flex aspect-square items-center justify-center rounded-xl border border-border bg-background/40 text-foreground/70 transition hover:-translate-y-0.5";
@@ -198,9 +199,49 @@ function PublicProfile() {
             </div>
           )}
 
+          {/* Showcase photo */}
+          {profile.photo_url && (
+            <div className="mt-6 animate-fade-up overflow-hidden rounded-2xl border border-border" style={{ animationDelay: "220ms" }}>
+              <img src={profile.photo_url} alt="" className="w-full object-cover transition duration-500 hover:scale-105" />
+            </div>
+          )}
+
+          {/* Song */}
+          {profile.song_url && (() => {
+            const embed = songEmbedUrl(profile.song_url);
+            if (!embed) return null;
+            return (
+              <div className="mt-6 animate-fade-up overflow-hidden rounded-2xl border border-border bg-background/40" style={{ animationDelay: "280ms" }}>
+                {embed.type === "iframe" ? (
+                  <iframe src={embed.src} className="h-24 w-full" style={{ border: 0 }} loading="lazy"
+                    allow="autoplay; encrypted-media; clipboard-write" title="song" />
+                ) : (
+                  <audio src={embed.src} controls className="w-full p-3" style={{ accentColor: accent }} />
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Video */}
+          {profile.video_url && (() => {
+            const embed = videoEmbedUrl(profile.video_url);
+            if (!embed) return null;
+            return (
+              <div className="mt-6 animate-fade-up aspect-video overflow-hidden rounded-2xl border border-border bg-background/40" style={{ animationDelay: "340ms" }}>
+                {embed.type === "iframe" ? (
+                  <iframe src={embed.src} className="h-full w-full" style={{ border: 0 }} loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen title="video" />
+                ) : (
+                  <video src={embed.src} controls className="h-full w-full object-cover" />
+                )}
+              </div>
+            );
+          })()}
+
           {/* Links */}
           {links.length > 0 && (
-            <div className="mt-4 space-y-2 animate-fade-up">
+            <div className="mt-4 space-y-2 animate-fade-up" style={{ animationDelay: "400ms" }}>
               {links.map((l: { id: string; title: string; url: string }) => (
                 <a key={l.id} href={l.url} target="_blank" rel="noreferrer noopener"
                   onClick={() => handleLinkClick(l.id)}
