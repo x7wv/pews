@@ -257,7 +257,7 @@ function Dashboard() {
         <div className="mt-8 flex gap-1 rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-1 overflow-x-auto">
           {TABS.map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-xl text-xs font-mono uppercase tracking-widest transition whitespace-nowrap ${tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`px-4 py-2 rounded-xl text-xs font-mono uppercase tracking-widest transition-all duration-200 whitespace-nowrap ${tab === t ? "bg-primary text-primary-foreground shadow-[0_4px_16px_-4px_var(--color-primary)] scale-105" : "text-muted-foreground hover:text-foreground hover:bg-background/40"}`}>
               {t}
             </button>
           ))}
