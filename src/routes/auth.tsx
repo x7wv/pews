@@ -67,7 +67,14 @@ function AuthPage() {
         if (error) throw error;
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "auth failed");
+      const msg = err instanceof Error ? err.message : "auth failed";
+      if (/email not confirmed/i.test(msg)) {
+        toast.error("your email isn't confirmed yet — check your inbox for the confirmation link");
+      } else if (/invalid login credentials/i.test(msg)) {
+        toast.error("incorrect email or password");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
