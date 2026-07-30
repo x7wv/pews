@@ -39,6 +39,7 @@ export const Route = createFileRoute("/u/$username")({
 });
 
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
+import { PLATFORM_BRAND_COLORS } from "@/lib/platform-colors";
 import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
@@ -237,9 +238,9 @@ function PublicProfile() {
       {!entered && (mp3Active || videoEmbed) && (
         <button onClick={enterSite}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm text-center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8 text-white/80"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
-          <div className="text-lg font-medium text-white">enter {displayName}'s profile</div>
-          <div className="text-xs text-white/50">tap anywhere to continue</div>
+          <div className="text-lg font-medium text-white" style={{ fontFamily: profile.entry_font || "Space Grotesk" }}>
+            {profile.entry_message?.trim() || `enter ${displayName}'s profile`}
+          </div>
         </button>
       )}
       <div className="fixed inset-0 -z-20 overflow-hidden" style={{ background: videoEmbed ? "#000" : (profile.background_color || "#080808") }}>
@@ -335,11 +336,13 @@ function PublicProfile() {
             {socials.map((s: { id: string; platform: string; url: string }) => {
               const isCrypto = CRYPTO_PLATFORMS.has(s.platform);
               const shared = "transition-all duration-200 hover:-translate-y-0.5 hover:scale-110";
-              const baseColor = iconColor ?? `${textColor}99`;
-              const handlers = profile.monochrome_icons ? {} : {
+              const baseColor = profile.monochrome_icons
+                ? (iconColor ?? `${textColor}99`)
+                : (PLATFORM_BRAND_COLORS[s.platform] ?? `${textColor}99`);
+              const handlers = profile.monochrome_icons ? {
                 onMouseEnter: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = accent; e.currentTarget.style.filter = `drop-shadow(0 0 8px ${accent}99)`; },
                 onMouseLeave: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = baseColor; e.currentTarget.style.filter = ""; },
-              };
+              } : {};
               if (isCrypto) {
                 return (
                   <button key={s.id} type="button" aria-label={`copy ${s.platform} address`}
@@ -362,15 +365,18 @@ function PublicProfile() {
 
         {links.length > 0 && (
           <div className="mt-8 w-full space-y-2 animate-fade-up" style={{ animationDelay: "360ms" }}>
-            {links.map((l: { id: string; title: string; url: string }) => (
+            {links.map((l: { id: string; title: string; url: string; image_url?: string | null }) => (
               <a key={l.id} href={l.url} target="_blank" rel="noreferrer noopener"
                 onClick={() => handleLinkClick(l.id)}
-                className="group relative flex items-center justify-between overflow-hidden rounded-xl border px-4 py-3 transition"
+                className="group relative flex items-center justify-between gap-3 overflow-hidden rounded-xl border px-4 py-3 transition"
                 style={{ ...boxStyle, backdropFilter: `blur(${blurPx}px)` }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${accent}99`; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = boxStyle.borderColor; }}>
-                <div className="font-medium text-sm" style={{ color: textColor }}>{l.title}</div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 transition group-hover:translate-x-1" style={{ color: `${textColor}80` }}><path d="M7 17L17 7M8 7h9v9"/></svg>
+                <div className="flex min-w-0 items-center gap-3">
+                  {l.image_url && <img src={l.image_url} alt="" className="h-7 w-7 flex-shrink-0 rounded-lg object-cover" />}
+                  <div className="truncate font-medium text-sm" style={{ color: textColor }}>{l.title}</div>
+                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 flex-shrink-0 transition group-hover:translate-x-1" style={{ color: `${textColor}80` }}><path d="M7 17L17 7M8 7h9v9"/></svg>
               </a>
             ))}
           </div>
