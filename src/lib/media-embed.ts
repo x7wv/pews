@@ -4,10 +4,10 @@ export function songEmbedUrl(url: string): { type: "iframe" | "audio"; src: stri
     const u = new URL(url);
     if (u.hostname.includes("open.spotify.com")) {
       const path = u.pathname.replace(/^\/(intl-[a-z]+\/)?/, "/");
-      return { type: "iframe", src: `https://open.spotify.com/embed${path}` };
+      return { type: "iframe", src: `https://open.spotify.com/embed${path}?autoplay=1` };
     }
     if (u.hostname.includes("soundcloud.com")) {
-      return { type: "iframe", src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%233b82f6&auto_play=false&show_teaser=false` };
+      return { type: "iframe", src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%233b82f6&auto_play=true&show_teaser=false` };
     }
     if (u.hostname.includes("music.apple.com")) {
       return { type: "iframe", src: url.replace("music.apple.com", "embed.music.apple.com") };
