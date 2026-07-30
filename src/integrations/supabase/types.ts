@@ -172,6 +172,7 @@ export type Database = {
           badges: string[]
           background_color: string
           background_url: string | null
+          ban_reason: string | null
           bio: string | null
           created_at: string
           cursor_url: string | null
@@ -182,6 +183,7 @@ export type Database = {
           font: string
           icon_color: string
           id: string
+          is_banned: boolean
           monochrome_icons: boolean
           photo_url: string | null
           profile_blur: number
@@ -204,6 +206,7 @@ export type Database = {
           badges?: string[]
           background_color?: string
           background_url?: string | null
+          ban_reason?: string | null
           bio?: string | null
           created_at?: string
           cursor_url?: string | null
@@ -214,6 +217,7 @@ export type Database = {
           font?: string
           icon_color?: string
           id: string
+          is_banned?: boolean
           monochrome_icons?: boolean
           photo_url?: string | null
           profile_blur?: number
@@ -235,6 +239,7 @@ export type Database = {
           badges?: string[]
           background_color?: string
           background_url?: string | null
+          ban_reason?: string | null
           bio?: string | null
           created_at?: string
           cursor_url?: string | null
@@ -245,6 +250,7 @@ export type Database = {
           font?: string
           icon_color?: string
           id?: string
+          is_banned?: boolean
           monochrome_icons?: boolean
           photo_url?: string | null
           profile_blur?: number
