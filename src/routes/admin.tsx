@@ -17,6 +17,8 @@ type Row = {
   display_name: string | null;
   view_count: number;
   created_at: string;
+  is_banned: boolean;
+  ban_reason: string | null;
 };
 
 function AdminPanel() {
@@ -38,7 +40,7 @@ function AdminPanel() {
       setMyUsername(data?.username ?? "");
       if (!allowed) return;
       const [{ data: profiles }, { data: clicks }, { data: links }] = await Promise.all([
-        supabase.from("profiles").select("id, username, display_name, view_count, created_at").order("view_count", { ascending: false }),
+        supabase.from("profiles").select("id, username, display_name, view_count, created_at, is_banned, ban_reason").order("view_count", { ascending: false }),
         supabase.from("custom_links").select("click_count"),
         supabase.from("custom_links").select("id"),
       ]);
@@ -67,6 +69,19 @@ function AdminPanel() {
         </div>
       </main>
     );
+  }
+
+  async function banUser(id: string) {
+    const reason = window.prompt("reason for ban (shown to the user, optional):", "") ?? "";
+    const { error } = await supabase.from("profiles").update({ is_banned: true, ban_reason: reason || null }).eq("id", id);
+    if (error) return alert(error.message);
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, is_banned: true, ban_reason: reason || null } : r)));
+  }
+
+  async function unbanUser(id: string) {
+    const { error } = await supabase.from("profiles").update({ is_banned: false, ban_reason: null }).eq("id", id);
+    if (error) return alert(error.message);
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, is_banned: false, ban_reason: null } : r)));
   }
 
   const filtered = rows.filter((r) => r.username.includes(q) || (r.display_name ?? "").toLowerCase().includes(q.toLowerCase()));
@@ -117,13 +132,23 @@ function AdminPanel() {
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-b border-border/40 hover:bg-background/30">
                     <td className="py-2">
-                      <div className="font-medium">{r.display_name || r.username}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {r.display_name || r.username}
+                        {r.is_banned && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-mono text-red-400">banned</span>}
+                      </div>
                       <div className="text-[10px] font-mono text-muted-foreground">@{r.username}</div>
                     </td>
                     <td className="py-2 text-right font-mono">{r.view_count.toLocaleString()}</td>
                     <td className="py-2 text-right text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="py-2 text-right">
-                      <Link to="/u/$username" params={{ username: r.username }} className="text-primary text-xs hover:underline">view →</Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link to="/u/$username" params={{ username: r.username }} className="text-primary text-xs hover:underline">view →</Link>
+                        {r.is_banned ? (
+                          <button onClick={() => unbanUser(r.id)} className="text-xs text-emerald-400 hover:underline">unban</button>
+                        ) : (
+                          <button onClick={() => banUser(r.id)} className="text-xs text-red-400 hover:underline">ban</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
