@@ -227,7 +227,9 @@ function Dashboard() {
   const profileUrl = `${typeof window !== "undefined" ? window.location.origin : "https://pews.lol"}/u/${profile.username}`;
 
   return (
-    <main className="min-h-screen font-sans pb-20">
+    <main className="relative min-h-screen font-sans pb-20">
+      <div className="pointer-events-none fixed inset-0 -z-10 grid-overlay opacity-60" />
+      <div className="pointer-events-none fixed inset-0 -z-10" style={{ background: "radial-gradient(ellipse 800px 500px at 50% -10%, oklch(0.62 0.19 250 / 12%), transparent 70%)" }} />
       <Header />
       <section className="mx-auto max-w-4xl px-4 pt-24">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -538,9 +540,12 @@ function DomainPanel({ domain, onConnect, onRemove }: { domain: Domain | null; o
 
 function Card({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="mt-6 animate-fade-up rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-5 transition duration-300 hover:border-primary/30 hover:shadow-[0_0_30px_-10px_var(--color-primary)]">
+    <div className="hud-corners mt-6 animate-fade-up rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-5 transition duration-300 hover:border-primary/30 hover:shadow-[0_0_30px_-10px_var(--color-primary)]">
       <div className="flex items-center justify-between mb-4">
-        <div className="font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground">{title}</div>
+        <div className="flex items-center gap-2 font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
+          {title}
+        </div>
         {action}
       </div>
       <div className="space-y-3">{children}</div>
