@@ -220,7 +220,7 @@ function PublicProfile() {
 
   return (
     <main className="relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
-      <div className="fixed inset-0 -z-20 overflow-hidden" style={{ background: profile.background_color || "#080808" }}>
+      <div className="fixed inset-0 -z-20 overflow-hidden" style={{ background: videoEmbed ? "#000" : (profile.background_color || "#080808") }}>
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
           {videoEmbed ? (
             <video ref={videoRef} src={videoEmbed.src} autoPlay loop muted playsInline
@@ -351,7 +351,7 @@ function PublicProfile() {
         )}
 
         {mp3Active && (
-          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
+          <div className="fixed left-5 top-1/2 z-30 w-64 max-w-[70vw] -translate-y-1/2 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
               style={{ backdropFilter: `blur(${blurPx}px)`, animationDelay: "420ms" }}>
               <img
                 src={profile.song_art_url || (avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar))}
