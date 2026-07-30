@@ -166,6 +166,7 @@ export type Database = {
         Row: {
           accent_color: string
           avatar_url: string | null
+          badges: string[]
           background_color: string
           background_url: string | null
           bio: string | null
@@ -182,6 +183,7 @@ export type Database = {
           profile_opacity: number
           song_art_url: string | null
           song_title: string | null
+          show_volume_control: boolean
           song_url: string | null
           swap_box_colors: boolean
           text_color: string
@@ -194,6 +196,7 @@ export type Database = {
         Insert: {
           accent_color?: string
           avatar_url?: string | null
+          badges?: string[]
           background_color?: string
           background_url?: string | null
           bio?: string | null
@@ -210,6 +213,7 @@ export type Database = {
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
+          show_volume_control?: boolean
           song_url?: string | null
           swap_box_colors?: boolean
           text_color?: string
@@ -221,6 +225,7 @@ export type Database = {
         Update: {
           accent_color?: string
           avatar_url?: string | null
+          badges?: string[]
           background_color?: string
           background_url?: string | null
           bio?: string | null
@@ -237,6 +242,7 @@ export type Database = {
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
+          show_volume_control?: boolean
           song_url?: string | null
           swap_box_colors?: boolean
           text_color?: string
