@@ -168,6 +168,7 @@ export type Database = {
       profiles: {
         Row: {
           accent_color: string
+          audio_source: string
           avatar_url: string | null
           badges: string[]
           background_color: string
@@ -203,6 +204,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string
+          audio_source?: string
           avatar_url?: string | null
           badges?: string[]
           background_color?: string
@@ -237,6 +239,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string
+          audio_source?: string
           avatar_url?: string | null
           badges?: string[]
           background_color?: string
