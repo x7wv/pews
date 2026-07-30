@@ -23,6 +23,8 @@ type Profile = {
   id: string; username: string; display_name: string | null; bio: string | null;
   avatar_url: string | null; background_url: string | null; accent_color: string;
   song_url: string | null; video_url: string | null; photo_url: string | null; discord_id: string | null;
+  background_color: string; text_color: string; icon_color: string;
+  profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -34,10 +36,12 @@ type ClickRow = { link_id: string; created_at: string };
 const PLATFORMS = [
   "discord", "twitter", "instagram", "github", "spotify", "youtube", "tiktok", "twitch", "website",
   "facebook", "linkedin", "telegram", "reddit", "snapchat", "threads", "bluesky",
-  "bitcoin", "ethereum", "wallet",
+  "soundcloud", "paypal", "cashapp", "venmo", "playstation", "xbox", "applemusic", "kofi",
+  "vk", "pinterest", "lastfm", "patreon", "gitlab", "email",
+  "bitcoin", "ethereum", "litecoin", "monero", "wallet",
 ];
-const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "wallet"]);
-const TABS = ["profile", "links", "analytics", "themes", "domain", "share"] as const;
+const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
+const TABS = ["profile", "appearance", "links", "analytics", "themes", "domain", "share"] as const;
 type Tab = typeof TABS[number];
 
 const MAX_LINKS_PER_ACCOUNT = 1;
@@ -116,6 +120,9 @@ function Dashboard() {
       avatar_url: profile.avatar_url, background_url: profile.background_url, accent_color: profile.accent_color,
       song_url: profile.song_url, video_url: profile.video_url, photo_url: profile.photo_url,
       discord_id: profile.discord_id,
+      background_color: profile.background_color, text_color: profile.text_color, icon_color: profile.icon_color,
+      profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
+      monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
     }).eq("id", profile.id);
     setSaving(false);
     if (error) toast.error(error.message); else toast.success("saved!");
@@ -308,6 +315,67 @@ function Dashboard() {
                 <input value={profile.accent_color} onChange={(e) => setProfile({ ...profile, accent_color: e.target.value })} className="input flex-1" />
               </div>
             </Field>
+          </Card>
+        )}
+
+        {tab === "appearance" && (
+          <Card title="appearance">
+            <Field label="profile opacity">
+              <div className="flex items-center gap-3">
+                <input type="range" min={10} max={100} value={profile.profile_opacity}
+                  onChange={(e) => setProfile({ ...profile, profile_opacity: Number(e.target.value) })}
+                  className="flex-1 accent-primary" />
+                <span className="w-10 text-right font-mono text-xs text-muted-foreground">{profile.profile_opacity}%</span>
+              </div>
+            </Field>
+            <Field label="profile blur">
+              <div className="flex items-center gap-3">
+                <input type="range" min={0} max={40} value={profile.profile_blur}
+                  onChange={(e) => setProfile({ ...profile, profile_blur: Number(e.target.value) })}
+                  className="flex-1 accent-primary" />
+                <span className="w-10 text-right font-mono text-xs text-muted-foreground">{profile.profile_blur}px</span>
+              </div>
+            </Field>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="background color">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={profile.background_color} onChange={(e) => setProfile({ ...profile, background_color: e.target.value })} className="h-9 w-full rounded-lg border border-border bg-transparent" />
+                </div>
+              </Field>
+              <Field label="text color">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={profile.text_color} onChange={(e) => setProfile({ ...profile, text_color: e.target.value })} className="h-9 w-full rounded-lg border border-border bg-transparent" />
+                </div>
+              </Field>
+              <Field label="icon color">
+                <div className="flex items-center gap-2">
+                  <input type="color" value={profile.icon_color} onChange={(e) => setProfile({ ...profile, icon_color: e.target.value })} className="h-9 w-full rounded-lg border border-border bg-transparent" />
+                </div>
+              </Field>
+            </div>
+            <Field label="custom cursor">
+              <input value={profile.cursor_url ?? ""} onChange={(e) => setProfile({ ...profile, cursor_url: e.target.value })} className="input" placeholder="https://... (32x32 png/cur/svg recommended)" />
+            </Field>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium">monochrome icons</div>
+                <div className="text-[11px] text-muted-foreground">force all social icons to your icon color instead of accent-tinted</div>
+              </div>
+              <button onClick={() => setProfile({ ...profile, monochrome_icons: !profile.monochrome_icons })}
+                className={`relative h-6 w-11 rounded-full transition ${profile.monochrome_icons ? "bg-primary" : "bg-background/60 border border-border"}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.monochrome_icons ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium">swap box colors</div>
+                <div className="text-[11px] text-muted-foreground">invert card backgrounds — use your accent as the fill instead of the border</div>
+              </div>
+              <button onClick={() => setProfile({ ...profile, swap_box_colors: !profile.swap_box_colors })}
+                className={`relative h-6 w-11 rounded-full transition ${profile.swap_box_colors ? "bg-primary" : "bg-background/60 border border-border"}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.swap_box_colors ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
           </Card>
         )}
 
