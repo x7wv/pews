@@ -114,6 +114,7 @@ function PublicProfile() {
   const [trackTitle, setTrackTitle] = useState<string | null>(null);
   const [playbackFailed, setPlaybackFailed] = useState(false);
   const [nameHovered, setNameHovered] = useState(false);
+  const [muted, setMuted] = useState(true);
   const bgRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -174,13 +175,15 @@ function PublicProfile() {
   function toggleAudio() {
     if (videoEmbed && videoRef.current) {
       const el = videoRef.current;
-      if (el.paused) { el.muted = false; el.play().catch(() => {}); setPlaying(true); }
+      if (el.muted) { el.muted = false; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
+      else if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
       else { el.pause(); setPlaying(false); }
       return;
     }
     if (songEmbed?.type === "audio" && audioRef.current && !playbackFailed) {
       const el = audioRef.current;
-      if (el.paused) { el.muted = false; el.play().catch(() => {}); setPlaying(true); }
+      if (el.muted) { el.muted = false; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
+      else if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
       else { el.pause(); setPlaying(false); }
     } else if (profile.song_url) {
       window.open(profile.song_url, "_blank", "noreferrer");
@@ -316,11 +319,13 @@ function PublicProfile() {
             <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
               style={{ backdropFilter: `blur(${blurPx}px)`, animationDelay: "420ms" }}>
               <img
-                src={avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar)}
+                src={profile.song_art_url || (avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar))}
                 alt="" className="h-11 w-11 flex-shrink-0 rounded-lg object-cover" />
               <div className="min-w-0 flex-1 text-left">
-                <div className="max-w-[200px] truncate text-xs font-semibold text-white/90">background video</div>
-                {duration > 0 ? (
+                <div className="max-w-[200px] truncate text-xs font-semibold text-white/90">{profile.song_title || "background video"}</div>
+                {muted && playing ? (
+                  <div className="mt-0.5 text-[10px] text-white/50">tap to unmute</div>
+                ) : duration > 0 ? (
                   <div className="mt-1.5 flex items-center gap-2">
                     <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(progress)}</span>
                     <div onClick={seekAudio} className="h-1 w-28 cursor-pointer rounded-full bg-white/15">
@@ -338,7 +343,9 @@ function PublicProfile() {
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M6 6h2v12H6zM20 6v12l-9-6z"/></svg>
                 </button>
                 <button onClick={toggleAudio} aria-label="toggle audio" className="text-white/90 transition hover:text-white">
-                  {playing ? (
+                  {muted && playing ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.43.05-.65zM19 12c0 .94-.2 1.82-.54 2.63l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L18.73 21 20 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18z"/></svg>
+                  ) : playing ? (
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
                   ) : (
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
@@ -356,13 +363,17 @@ function PublicProfile() {
             <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
               style={{ backdropFilter: `blur(${blurPx}px)`, animationDelay: "420ms" }}>
               <img
-                src={avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar)}
+                src={profile.song_art_url || (avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar))}
                 alt="" className="h-11 w-11 flex-shrink-0 rounded-lg object-cover" />
               <div className="min-w-0 flex-1 text-left">
                 <div className="max-w-[200px] truncate text-xs font-semibold text-white/90">
-                  {trackTitle ?? "now playing"}
+                  {profile.song_title || trackTitle || "now playing"}
                 </div>
-                {duration > 0 && !playbackFailed ? (
+                {playbackFailed ? (
+                  <div className="mt-0.5 text-[10px] text-white/50">can't play inline — tap to open</div>
+                ) : muted && playing ? (
+                  <div className="mt-0.5 text-[10px] text-white/50">tap to unmute</div>
+                ) : duration > 0 ? (
                   <div className="mt-1.5 flex items-center gap-2">
                     <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(progress)}</span>
                     <div onClick={seekAudio} className="h-1 w-28 cursor-pointer rounded-full bg-white/15">
@@ -371,7 +382,7 @@ function PublicProfile() {
                     <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(duration)}</span>
                   </div>
                 ) : (
-                  <div className="mt-0.5 text-[10px] text-white/50">{playbackFailed ? "can't play inline — tap to open" : "loading…"}</div>
+                  <div className="mt-0.5 text-[10px] text-white/50">loading…</div>
                 )}
               </div>
               <div className="flex flex-shrink-0 items-center gap-3">
@@ -382,7 +393,9 @@ function PublicProfile() {
                   </button>
                 )}
                 <button onClick={toggleAudio} aria-label="toggle audio" className="text-white/90 transition hover:text-white">
-                  {playing ? (
+                  {muted && playing ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.43.05-.65zM19 12c0 .94-.2 1.82-.54 2.63l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L18.73 21 20 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18z"/></svg>
+                  ) : playing ? (
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
                   ) : (
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
