@@ -73,6 +73,7 @@ function Dashboard() {
   const [clicks, setClicks] = useState<ClickRow[]>([]);
   const [range, setRange] = useState<"24h" | "7d" | "30d" | "all">("7d");
   const [saving, setSaving] = useState(false);
+  const [autoSavedAt, setAutoSavedAt] = useState<number | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [changingUsername, setChangingUsername] = useState(false);
   const [usernameCharError, setUsernameCharError] = useState(false);
@@ -136,11 +137,11 @@ function Dashboard() {
     return () => clearTimeout(t);
   }, [profile?.username, profile?.id]);
 
-  async function saveProfile() {
+  async function saveProfile(silent = false) {
     if (!profile) return;
-    if (usernameStatus === "taken") return toast.error("that username is already taken");
-    if (containsBlockedTerm(profile.username)) return toast.error("that username isn't allowed");
-    setSaving(true);
+    if (usernameStatus === "taken") return silent ? undefined : toast.error("that username is already taken");
+    if (containsBlockedTerm(profile.username)) return silent ? undefined : toast.error("that username isn't allowed");
+    if (!silent) setSaving(true);
     const { error } = await supabase.from("profiles").update({
       username: profile.username, display_name: profile.display_name, bio: profile.bio,
       avatar_url: profile.avatar_url, background_url: profile.background_url, accent_color: profile.accent_color,
@@ -153,9 +154,18 @@ function Dashboard() {
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
       font: profile.font, entry_message: profile.entry_message, entry_font: profile.entry_font,
     }).eq("id", profile.id);
-    setSaving(false);
-    if (error) toast.error(error.message); else toast.success("saved!");
+    if (!silent) setSaving(false);
+    if (error) { if (!silent) toast.error(error.message); }
+    else { if (!silent) toast.success("saved!"); else setAutoSavedAt(Date.now()); }
   }
+
+  const isFirstProfileLoad = useRef(true);
+  useEffect(() => {
+    if (!profile) return;
+    if (isFirstProfileLoad.current) { isFirstProfileLoad.current = false; return; }
+    const t = setTimeout(() => { saveProfile(true); }, 2000);
+    return () => clearTimeout(t);
+  }, [profile]);
 
   async function addSocial() {
     if (!session) return;
@@ -225,9 +235,12 @@ function Dashboard() {
   }
   async function clearTheme() {
     if (!profile) return;
+    const noColor = "#9ca3af";
+    setProfile({ ...profile, accent_color: noColor });
+    await supabase.from("profiles").update({ accent_color: noColor }).eq("id", profile.id);
     await supabase.from("profile_themes").update({ is_active: false }).eq("user_id", profile.id);
     setThemes((prev) => prev.map((x) => ({ ...x, is_active: false })));
-    toast.success("no theme selected");
+    toast.success("no theme — colors cleared");
   }
   async function deleteTheme(id: string) {
     setThemes((prev) => prev.filter((t) => t.id !== id));
@@ -285,10 +298,15 @@ function Dashboard() {
               </Link>
             </div>
           </div>
-          <button onClick={saveProfile} disabled={saving}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
-            {saving ? "saving…" : "save"}
-          </button>
+          <div className="flex items-center gap-3">
+            {autoSavedAt && !saving && (
+              <span className="text-[11px] text-muted-foreground">autosaved</span>
+            )}
+            <button onClick={() => saveProfile()} disabled={saving}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
+              {saving ? "saving…" : "save"}
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
