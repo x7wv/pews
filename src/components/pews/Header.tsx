@@ -4,6 +4,8 @@ import { useSession } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/pews-logo.png";
 
+const ADMIN_USERNAMES = new Set(["x7wv", "knyfe"]);
+
 export function Header() {
   const { user, loading } = useSession();
   const navigate = useNavigate();
@@ -12,7 +14,7 @@ export function Header() {
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
     supabase.from("profiles").select("username").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setIsAdmin(data?.username === "x7wv"));
+      .then(({ data }) => setIsAdmin(!!data?.username && ADMIN_USERNAMES.has(data.username)));
   }, [user]);
 
   async function signOut() {
