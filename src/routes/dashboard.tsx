@@ -73,6 +73,8 @@ function Dashboard() {
   const [range, setRange] = useState<"24h" | "7d" | "30d" | "all">("7d");
   const [saving, setSaving] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [changingUsername, setChangingUsername] = useState(false);
+  const [originalUsername, setOriginalUsername] = useState("");
   const [draftTheme, setDraftTheme] = useState<{ name: string; accent: string; background: string; particle: string } | null>(null);
 
   useEffect(() => {
@@ -93,6 +95,7 @@ function Dashboard() {
       if (p.data) {
         const pr = p.data as Profile;
         setProfile(pr);
+        setOriginalUsername(pr.username.trim().toLowerCase());
         setDraftTheme({ name: "", accent: pr.accent_color, background: pr.background_url ?? "", particle: pr.accent_color + "88" });
       }
       if (s.data) setSocials(s.data as SocialLink[]);
@@ -280,11 +283,13 @@ function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-3 gap-3">
-          <Stat label="views" value={profile.view_count.toLocaleString()} />
-          <Stat label="clicks" value={totalClicks.toLocaleString()} />
-          <Stat label="since" value={new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "2-digit" })} />
-        </div>
+        {tab === "analytics" && (
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            <Stat label="views" value={profile.view_count.toLocaleString()} />
+            <Stat label="clicks" value={totalClicks.toLocaleString()} />
+            <Stat label="since" value={new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "2-digit" })} />
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="mt-8 flex gap-1 rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-1 overflow-x-auto">
@@ -299,9 +304,19 @@ function Dashboard() {
         {tab === "profile" && (
           <Card title="profile">
             <Field label="username">
-              <input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="input" />
-              {usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
-              {usernameStatus === "available" && <div className="mt-1 text-[11px] text-emerald-400">User available!</div>}
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-3 py-2">
+                <span className="font-mono text-sm">{profile.username}</span>
+                <button onClick={() => setChangingUsername(!changingUsername)} className="text-xs text-primary hover:underline">change your name</button>
+              </div>
+              {changingUsername && (
+                <div className="mt-2 rounded-xl border border-border bg-background/30 p-3">
+                  <input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="input" autoFocus />
+                  {usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
+                  {usernameStatus === "available" && profile.username.trim().toLowerCase() !== originalUsername && (
+                    <div className="mt-1 text-[11px] text-emerald-400">User available!</div>
+                  )}
+                </div>
+              )}
             </Field>
             <Field label="display name">
               <input value={profile.display_name ?? ""} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} className="input" />
@@ -309,29 +324,13 @@ function Dashboard() {
             <Field label="bio">
               <textarea value={profile.bio ?? ""} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={3} className="input resize-none" />
             </Field>
-            <Field label="avatar">
-              <ImageDropzone value={profile.avatar_url} onUploaded={(url) => setProfile({ ...profile, avatar_url: url })} preview="round" />
-            </Field>
-            <Field label="background">
-              <BackgroundDropzone
-                backgroundUrl={profile.background_url}
-                videoUrl={profile.video_url}
-                onUploaded={(kind, url) => setProfile(kind === "video"
-                  ? { ...profile, video_url: url, background_url: null }
-                  : { ...profile, background_url: url, video_url: null })}
-              />
-              <div className="mt-1 text-[11px] text-muted-foreground">supports .png, .webp, .gif, or .mp4 (autoplaying background video)</div>
-            </Field>
             <Field label="showcase photo">
               <ImageDropzone value={profile.photo_url} onUploaded={(url) => setProfile({ ...profile, photo_url: url })} preview="wide" />
               <div className="mt-1 text-[11px] text-muted-foreground">an extra photo shown on your page, separate from your avatar</div>
             </Field>
             <Field label="song">
               <input value={profile.song_url ?? ""} onChange={(e) => setProfile({ ...profile, song_url: e.target.value })} className="input" placeholder="spotify, soundcloud, apple music, or a direct .mp3 link" />
-              <div className="mt-1 text-[11px] text-muted-foreground">paste a spotify/soundcloud/apple music track link, or upload an mp3 below</div>
-              <div className="mt-2">
-                <MediaDropzone value={profile.song_url} onUploaded={(url) => setProfile({ ...profile, song_url: url })} accept="audio/mpeg,.mp3" label="drag & drop an mp3" />
-              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">paste a spotify/soundcloud/apple music track link, or upload an mp3 in the appearance tab</div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <input value={profile.song_title ?? ""} onChange={(e) => setProfile({ ...profile, song_title: e.target.value })} className="input" placeholder="custom song title (optional)" />
                 <ImageDropzone value={profile.song_art_url} onUploaded={(url) => setProfile({ ...profile, song_art_url: url })} preview="round" hint="custom song artwork" />
@@ -354,6 +353,34 @@ function Dashboard() {
         )}
 
         {tab === "appearance" && (
+          <>
+          <Card title="assets uploader">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div>
+                <div className="mb-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">background</div>
+                <BackgroundDropzone
+                  backgroundUrl={profile.background_url}
+                  videoUrl={profile.video_url}
+                  onUploaded={(kind, url) => setProfile(kind === "video"
+                    ? { ...profile, video_url: url, background_url: null }
+                    : { ...profile, background_url: url, video_url: null })}
+                />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">audio</div>
+                <MediaDropzone value={profile.song_url} onUploaded={(url) => setProfile({ ...profile, song_url: url })} accept="audio/mpeg,.mp3" label="drag & drop an mp3" />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">profile avatar</div>
+                <ImageDropzone value={profile.avatar_url} onUploaded={(url) => setProfile({ ...profile, avatar_url: url })} preview="round" />
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">custom cursor</div>
+                <ImageDropzone value={profile.cursor_url} onUploaded={(url) => setProfile({ ...profile, cursor_url: url })} preview="round" hint="auto-resized to 32×32" resizeTo={32} />
+              </div>
+            </div>
+            <div className="text-[11px] text-muted-foreground">background supports .png, .webp, .gif, or .mp4 (autoplaying background video)</div>
+          </Card>
           <Card title="appearance">
             <Field label="profile opacity">
               <div className="flex items-center gap-3">
@@ -388,9 +415,6 @@ function Dashboard() {
                 </div>
               </Field>
             </div>
-            <Field label="custom cursor">
-              <ImageDropzone value={profile.cursor_url} onUploaded={(url) => setProfile({ ...profile, cursor_url: url })} preview="round" hint="auto-resized to 32×32" resizeTo={32} />
-            </Field>
             <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
               <div>
                 <div className="text-sm font-medium">monochrome icons</div>
@@ -422,6 +446,7 @@ function Dashboard() {
               </button>
             </div>
           </Card>
+          </>
         )}
 
         {tab === "fonts" && (
