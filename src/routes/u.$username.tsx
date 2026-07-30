@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrCreateSessionToken } from "@/lib/auth";
 import defaultBg from "@/assets/pews-bg.jpg";
+import defaultAvatar from "@/assets/pews-avatar.jpg";
 
 export const Route = createFileRoute("/u/$username")({
   loader: async ({ params }) => {
@@ -106,6 +107,10 @@ function PublicProfile() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [views, setViews] = useState(profile.view_count);
   const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [bgFailed, setBgFailed] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const bgRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -147,21 +152,36 @@ function PublicProfile() {
     ? { background: `${accent}26`, borderColor: `${accent}80` }
     : { background: "rgba(0,0,0,0.35)", borderColor: "rgba(255,255,255,0.1)" };
 
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el || songEmbed?.type !== "audio") return;
+    el.muted = true;
+    el.play().then(() => setPlaying(false)).catch(() => {});
+  }, [songEmbed?.type, songEmbed?.src]);
+
   function toggleAudio() {
     if (songEmbed?.type === "audio" && audioRef.current) {
-      if (playing) audioRef.current.pause();
-      else audioRef.current.play().catch(() => {});
-      setPlaying(!playing);
+      const el = audioRef.current;
+      if (el.paused) { el.muted = false; el.play().catch(() => {}); setPlaying(true); }
+      else { el.muted = !el.muted; setPlaying(!el.muted); }
     } else if (profile.song_url) {
       window.open(profile.song_url, "_blank", "noreferrer");
     }
+  }
+
+  function seekAudio(e: React.MouseEvent<HTMLDivElement>) {
+    const el = audioRef.current;
+    if (!el || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    el.currentTime = pct * duration;
   }
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden font-sans" style={{ background: profile.background_color || "#080808", color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
       <div className="fixed inset-0 -z-20 overflow-hidden">
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
-          <img src={bgImage} alt="" className="h-full w-full object-cover" style={{ opacity }} />
+          <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity }} />
         </div>
         <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 60% at 50% 40%, transparent 0%, oklch(0.03 0.005 300 / 0.75) 60%, oklch(0.02 0.005 300 / 0.97) 100%)" }} />
         <div className="absolute inset-0 grid-overlay opacity-30" />
@@ -169,18 +189,28 @@ function PublicProfile() {
       <Particles color={`${accent}66`} />
 
       {profile.song_url && (
-        <button onClick={toggleAudio} aria-label="toggle audio"
-          className="fixed top-5 left-5 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition hover:border-white/30 hover:text-white"
-          style={{ backdropFilter: `blur(${blurPx}px)` }}>
-          {playing ? (
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
-          ) : (
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+        <div className="fixed top-5 left-5 z-30 flex flex-col items-start gap-2">
+          <button onClick={toggleAudio} aria-label="toggle audio"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition hover:border-white/30 hover:text-white"
+            style={{ backdropFilter: `blur(${blurPx}px)` }}>
+            {playing ? (
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+            )}
+          </button>
+          {songEmbed?.type === "audio" && duration > 0 && (
+            <div onClick={seekAudio} className="h-1 w-24 cursor-pointer rounded-full bg-white/15" style={{ backdropFilter: `blur(${blurPx}px)` }}>
+              <div className="h-full rounded-full transition-[width]" style={{ width: `${Math.min(100, (progress / duration) * 100)}%`, background: accent }} />
+            </div>
           )}
-        </button>
+        </div>
       )}
       {songEmbed?.type === "audio" && (
-        <audio ref={audioRef} src={songEmbed.src} loop onEnded={() => setPlaying(false)} className="hidden" />
+        <audio ref={audioRef} src={songEmbed.src} loop
+          onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
+          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          onEnded={() => setPlaying(false)} className="hidden" />
       )}
 
       <div className="fixed bottom-5 left-5 z-30 flex items-center gap-1.5 text-xs text-white/50 font-mono">
@@ -190,9 +220,16 @@ function PublicProfile() {
 
       <section className="relative z-10 mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-20 text-center">
         <div className="animate-fade-up" style={{ animationDelay: "0ms" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="1.5" className="mx-auto h-8 w-8 opacity-90">
-            <path d="M12 2l2.5 7H22l-6 4.5 2.5 7L12 16l-6.5 4.5L8 13.5 2 9h7.5z" />
-          </svg>
+          <div className="relative mx-auto h-20 w-20">
+            <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 30px ${accent}80, 0 0 60px ${accent}30` }} />
+            <img
+              src={avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar)}
+              onError={() => setAvatarFailed(true)}
+              alt={displayName}
+              className="relative h-20 w-20 rounded-full border-2 object-cover"
+              style={{ borderColor: `${accent}99` }}
+            />
+          </div>
         </div>
 
         <h1 className="mt-4 animate-fade-up font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ animationDelay: "60ms", color: textColor }}>
