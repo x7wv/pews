@@ -114,6 +114,7 @@ function PublicProfile() {
   const [trackTitle, setTrackTitle] = useState<string | null>(null);
   const [playbackFailed, setPlaybackFailed] = useState(false);
   const [nameHovered, setNameHovered] = useState(false);
+  const [entered, setEntered] = useState(false);
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(0.5);
   const bgRef = useRef<HTMLDivElement>(null);
@@ -172,13 +173,8 @@ function PublicProfile() {
       const el = audioRef.current;
       if (!el) return;
       el.volume = 0.5;
-      el.muted = false;
-      el.play().then(() => { setPlaying(true); setMuted(false); setVolume(0.5); }).catch(() => {
-        // browser blocked audible autoplay — fall back to the silent-then-click-to-unmute trick
-        el.muted = true;
-        setMuted(true);
-        el.play().then(() => setPlaying(true)).catch(() => {});
-      });
+      el.muted = true;
+      el.play().then(() => setPlaying(true)).catch(() => {});
       return;
     }
     if (videoEmbed) {
@@ -186,6 +182,19 @@ function PublicProfile() {
       if (videoRef.current) { videoRef.current.volume = 0.5; setVolume(0.5); }
     }
   }, [mp3Active, songEmbed?.src, videoEmbed]);
+
+  function enterSite() {
+    setEntered(true);
+    const el = mp3Active ? audioRef.current : videoEmbed ? videoRef.current : null;
+    if (el) {
+      el.muted = false;
+      el.volume = el.volume || 0.5;
+      setMuted(false);
+      setVolume(el.volume);
+      if (el.paused) el.play().catch(() => {});
+      setPlaying(true);
+    }
+  }
 
   function toggleAudio() {
     if (mp3Active && audioRef.current && !playbackFailed) {
@@ -225,6 +234,14 @@ function PublicProfile() {
 
   return (
     <main className="relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
+      {!entered && (mp3Active || videoEmbed) && (
+        <button onClick={enterSite}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm text-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8 text-white/80"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+          <div className="text-lg font-medium text-white">enter {displayName}'s profile</div>
+          <div className="text-xs text-white/50">tap anywhere to continue</div>
+        </button>
+      )}
       <div className="fixed inset-0 -z-20 overflow-hidden" style={{ background: videoEmbed ? "#000" : (profile.background_color || "#080808") }}>
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
           {videoEmbed ? (
@@ -300,9 +317,11 @@ function PublicProfile() {
         </div>
 
         {profile.bio && (
-          <p className="mt-2 animate-fade-up max-w-sm text-sm italic transition-opacity duration-150" style={{ animationDelay: "120ms", color: textColor, opacity: nameHovered ? 0 : 0.65, fontFamily: profile.font || "Space Grotesk" }}>
-            {profile.bio}
-          </p>
+          <div className="mt-2 animate-fade-up" style={{ animationDelay: "120ms" }}>
+            <p className="max-w-sm text-sm italic transition-opacity duration-150" style={{ color: textColor, opacity: nameHovered ? 0 : 0.65, fontFamily: profile.font || "Space Grotesk" }}>
+              {profile.bio}
+            </p>
+          </div>
         )}
 
         {profile.discord_id && (
