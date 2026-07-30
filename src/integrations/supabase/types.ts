@@ -185,6 +185,7 @@ export type Database = {
           id: string
           is_banned: boolean
           monochrome_icons: boolean
+          no_glow: boolean
           photo_url: string | null
           profile_blur: number
           profile_opacity: number
@@ -219,6 +220,7 @@ export type Database = {
           id: string
           is_banned?: boolean
           monochrome_icons?: boolean
+          no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
           profile_opacity?: number
@@ -252,6 +254,7 @@ export type Database = {
           id?: string
           is_banned?: boolean
           monochrome_icons?: boolean
+          no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
           profile_opacity?: number
