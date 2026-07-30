@@ -41,7 +41,6 @@ export const Route = createFileRoute("/u/$username")({
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
-import { BADGE_OPTIONS } from "@/lib/badges";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
 
 function Particles({ color }: { color: string }) {
@@ -171,8 +170,14 @@ function PublicProfile() {
     if (mp3Active) {
       const el = audioRef.current;
       if (!el) return;
-      el.muted = true;
-      el.play().then(() => setPlaying(true)).catch(() => {});
+      el.volume = 0.5;
+      el.muted = false;
+      el.play().then(() => { setPlaying(true); setMuted(false); }).catch(() => {
+        // browser blocked audible autoplay — fall back to the silent-then-click-to-unmute trick
+        el.muted = true;
+        setMuted(true);
+        el.play().then(() => setPlaying(true)).catch(() => {});
+      });
       return;
     }
     if (videoEmbed) setPlaying(true);
@@ -275,20 +280,6 @@ function PublicProfile() {
           </div>
         </div>
 
-        {profile.badges?.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 animate-fade-up" style={{ animationDelay: "40ms" }}>
-            {profile.badges.map((id: string) => {
-              const b = BADGE_OPTIONS.find((x) => x.id === id);
-              if (!b) return null;
-              return (
-                <span key={id} title={b.label} className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-sm">
-                  {b.emoji}
-                </span>
-              );
-            })}
-          </div>
-        )}
-
         <div className="relative mt-4 inline-block animate-fade-up" style={{ animationDelay: "60ms" }}
           onMouseEnter={() => setNameHovered(true)} onMouseLeave={() => setNameHovered(false)}>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: profile.font || "Space Grotesk" }}>
@@ -359,15 +350,8 @@ function PublicProfile() {
           </div>
         )}
 
-        {profile.song_url && songEmbed && (
-          songEmbed.type === "iframe" ? (
-            <div className="mt-8 w-full max-w-xs overflow-hidden rounded-2xl border border-white/10 animate-fade-up"
-              style={{ animationDelay: "420ms" }}>
-              <iframe src={songEmbed.src} className="h-24 w-full" style={{ border: 0 }} loading="lazy"
-                allow="autoplay; encrypted-media; clipboard-write" title="song" />
-            </div>
-          ) : (
-            <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
+        {mp3Active && (
+          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
               style={{ backdropFilter: `blur(${blurPx}px)`, animationDelay: "420ms" }}>
               <img
                 src={profile.song_art_url || (avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar))}
@@ -410,7 +394,6 @@ function PublicProfile() {
                 </button>
               </div>
             </div>
-          )
         )}
 
         <a href="/" className="mt-6 text-[10px] font-mono uppercase tracking-widest text-white/30 hover:text-white/60 transition">
