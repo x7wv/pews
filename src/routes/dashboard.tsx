@@ -30,7 +30,7 @@ type Profile = {
   show_volume_control: boolean;
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
-  font: string; entry_message: string | null; entry_font: string; no_glow: boolean;
+  font: string; entry_message: string | null; entry_font: string; no_glow: boolean; audio_source: string;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -78,6 +78,7 @@ function Dashboard() {
   const [changingUsername, setChangingUsername] = useState(false);
   const [usernameCharError, setUsernameCharError] = useState(false);
   const [originalUsername, setOriginalUsername] = useState("");
+  const [profileTimedOut, setProfileTimedOut] = useState(false);
   const [draftTheme, setDraftTheme] = useState<{ name: string; accent: string; background: string; particle: string } | null>(null);
 
   useEffect(() => {
@@ -107,6 +108,12 @@ function Dashboard() {
       if (d.data) setDomain(d.data as Domain);
     })();
   }, [session]);
+
+  useEffect(() => {
+    if (!session || profile) return;
+    const t = setTimeout(() => setProfileTimedOut(true), 8000);
+    return () => clearTimeout(t);
+  }, [session, profile]);
 
   useEffect(() => {
     if (!session || tab !== "analytics" || links.length === 0) return;
@@ -153,6 +160,7 @@ function Dashboard() {
       profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
       font: profile.font, entry_message: profile.entry_message, entry_font: profile.entry_font, no_glow: profile.no_glow,
+      audio_source: profile.audio_source,
     }).eq("id", profile.id);
     if (!silent) setSaving(false);
     if (error) { if (!silent) toast.error(error.message); }
@@ -274,7 +282,15 @@ function Dashboard() {
     return (
       <main className="min-h-screen">
         <Header />
-        <div className="flex min-h-screen items-center justify-center text-muted-foreground text-sm">loading…</div>
+        {profileTimedOut ? (
+          <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+            <div className="text-sm text-muted-foreground">something went wrong loading your profile.</div>
+            <div className="text-xs text-muted-foreground/70">this can happen if your account's profile row is missing. try signing out and back in, or reach out for help.</div>
+            <button onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth" }); }} className="btn-sm mt-2">sign out and try again</button>
+          </div>
+        ) : (
+          <div className="flex min-h-screen items-center justify-center text-muted-foreground text-sm">loading…</div>
+        )}
       </main>
     );
   }
@@ -413,6 +429,21 @@ function Dashboard() {
               <span className="text-[11px] text-muted-foreground whitespace-nowrap">song artwork:</span>
               <ImageDropzone value={profile.song_art_url} onUploaded={(url) => setProfile({ ...profile, song_art_url: url })} preview="round" hint="custom song artwork (optional)" />
             </div>
+            <Field label="which audio plays">
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setProfile({ ...profile, audio_source: "mp3" })}
+                  className={`rounded-xl border p-3 text-left transition ${profile.audio_source === "mp3" ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}>
+                  <div className="text-sm font-medium">mp3 audio</div>
+                  <div className="text-[11px] text-muted-foreground">plays the mp3 from the audio loader (video plays silently)</div>
+                </button>
+                <button onClick={() => setProfile({ ...profile, audio_source: "video" })}
+                  className={`rounded-xl border p-3 text-left transition ${profile.audio_source === "video" ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}>
+                  <div className="text-sm font-medium">video's own audio</div>
+                  <div className="text-[11px] text-muted-foreground">plays your background video's sound (mp3 is ignored)</div>
+                </button>
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">only matters if you have both an mp3 and a background video with sound</div>
+            </Field>
           </Card>
           <Card title="appearance">
             <Field label="entry screen message">
