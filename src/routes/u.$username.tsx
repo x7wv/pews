@@ -40,7 +40,7 @@ export const Route = createFileRoute("/u/$username")({
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { songEmbedUrl, videoEmbedUrl } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
-const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "wallet"]);
+const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
 
 function Particles({ color }: { color: string }) {
   const items = useMemo(() =>
@@ -65,17 +65,17 @@ function Particles({ color }: { color: string }) {
   );
 }
 
-function DiscordCard({ discordId }: { discordId: string }) {
+function DiscordCard({ discordId, boxStyle, blurPx, textColor }: { discordId: string; boxStyle: { background: string; borderColor: string }; blurPx: number; textColor: string }) {
   const { presence, loading } = useLanyard(discordId);
   if (loading) return null;
   if (!presence?.found || !presence.discord_user) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-border bg-black/40 backdrop-blur-xl px-4 py-3 text-left">
+      <div className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-left" style={{ ...boxStyle, backdropFilter: `blur(${blurPx}px)` }}>
         <span className="text-lg">❌</span>
         <div>
-          <div className="text-sm font-medium">User Not found</div>
-          <div className="text-xs text-muted-foreground">
-            Please <a href="https://discord.com/invite/lanyard" target="_blank" rel="noreferrer" className="underline hover:text-foreground">connect</a> your Discord account
+          <div className="text-sm font-medium" style={{ color: textColor }}>User Not found</div>
+          <div className="text-xs" style={{ color: `${textColor}99` }}>
+            Please <a href="https://discord.com/invite/lanyard" target="_blank" rel="noreferrer" className="underline hover:opacity-80">connect</a> your Discord account
           </div>
         </div>
       </div>
@@ -88,14 +88,14 @@ function DiscordCard({ discordId }: { discordId: string }) {
     ? `Listening to ${presence.spotify.song} — ${presence.spotify.artist}`
     : activity ? `${["Playing", "Streaming", "Listening to", "Watching"][activity.type] ?? "Playing"} ${activity.name}` : status[0].toUpperCase() + status.slice(1);
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-black/40 backdrop-blur-xl px-4 py-3 text-left">
+    <div className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-left" style={{ ...boxStyle, backdropFilter: `blur(${blurPx}px)` }}>
       <div className="relative flex-shrink-0">
         <img src={discordAvatarUrl(u)} alt="" className="h-9 w-9 rounded-full" />
         <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background" style={{ background: STATUS_COLORS[status] }} />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-sm font-medium">{u.global_name || u.username}</div>
-        <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
+        <div className="truncate text-sm font-medium" style={{ color: textColor }}>{u.global_name || u.username}</div>
+        <div className="truncate text-xs" style={{ color: `${textColor}99` }}>{subtitle}</div>
       </div>
     </div>
   );
@@ -139,6 +139,13 @@ function PublicProfile() {
   const displayName = profile.display_name || profile.username;
   const songEmbed = profile.song_url ? songEmbedUrl(profile.song_url) : null;
   const videoEmbed = profile.video_url ? videoEmbedUrl(profile.video_url) : null;
+  const textColor = profile.text_color || "#ffffff";
+  const iconColor = profile.monochrome_icons ? (profile.icon_color || "#ffffff") : undefined;
+  const opacity = (profile.profile_opacity ?? 60) / 100;
+  const blurPx = profile.profile_blur ?? 20;
+  const boxStyle = profile.swap_box_colors
+    ? { background: `${accent}26`, borderColor: `${accent}80` }
+    : { background: "rgba(0,0,0,0.35)", borderColor: "rgba(255,255,255,0.1)" };
 
   function toggleAudio() {
     if (songEmbed?.type === "audio" && audioRef.current) {
@@ -151,10 +158,10 @@ function PublicProfile() {
   }
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden font-sans">
+    <main className="relative min-h-screen w-full overflow-hidden font-sans" style={{ background: profile.background_color || "#080808", color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
       <div className="fixed inset-0 -z-20 overflow-hidden">
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
-          <img src={bgImage} alt="" className="h-full w-full object-cover opacity-70" />
+          <img src={bgImage} alt="" className="h-full w-full object-cover" style={{ opacity }} />
         </div>
         <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 60% at 50% 40%, transparent 0%, oklch(0.03 0.005 300 / 0.75) 60%, oklch(0.02 0.005 300 / 0.97) 100%)" }} />
         <div className="absolute inset-0 grid-overlay opacity-30" />
@@ -163,7 +170,8 @@ function PublicProfile() {
 
       {profile.song_url && (
         <button onClick={toggleAudio} aria-label="toggle audio"
-          className="fixed top-5 left-5 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 backdrop-blur-xl text-white/80 transition hover:border-white/30 hover:text-white">
+          className="fixed top-5 left-5 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition hover:border-white/30 hover:text-white"
+          style={{ backdropFilter: `blur(${blurPx}px)` }}>
           {playing ? (
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
           ) : (
@@ -187,19 +195,19 @@ function PublicProfile() {
           </svg>
         </div>
 
-        <h1 className="mt-4 animate-fade-up font-display text-4xl md:text-5xl font-bold tracking-tight text-white" style={{ animationDelay: "60ms" }}>
+        <h1 className="mt-4 animate-fade-up font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ animationDelay: "60ms", color: textColor }}>
           {displayName}
         </h1>
 
         {profile.bio && (
-          <p className="mt-2 animate-fade-up max-w-sm text-sm italic text-white/60" style={{ animationDelay: "120ms" }}>
+          <p className="mt-2 animate-fade-up max-w-sm text-sm italic" style={{ animationDelay: "120ms", color: textColor, opacity: 0.65 }}>
             {profile.bio}
           </p>
         )}
 
         {profile.discord_id && (
           <div className="mt-6 w-full max-w-xs animate-fade-up" style={{ animationDelay: "180ms" }}>
-            <DiscordCard discordId={profile.discord_id} />
+            <DiscordCard discordId={profile.discord_id} boxStyle={boxStyle} blurPx={blurPx} textColor={textColor} />
           </div>
         )}
 
@@ -207,24 +215,25 @@ function PublicProfile() {
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4 animate-fade-up" style={{ animationDelay: "240ms" }}>
             {socials.map((s: { id: string; platform: string; url: string }) => {
               const isCrypto = CRYPTO_PLATFORMS.has(s.platform);
-              const shared = "text-white/60 transition-all duration-200 hover:-translate-y-0.5 hover:scale-110";
-              const handlers = {
+              const shared = "transition-all duration-200 hover:-translate-y-0.5 hover:scale-110";
+              const baseColor = iconColor ?? `${textColor}99`;
+              const handlers = profile.monochrome_icons ? {} : {
                 onMouseEnter: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = accent; e.currentTarget.style.filter = `drop-shadow(0 0 8px ${accent}99)`; },
-                onMouseLeave: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = ""; e.currentTarget.style.filter = ""; },
+                onMouseLeave: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = baseColor; e.currentTarget.style.filter = ""; },
               };
               if (isCrypto) {
                 return (
                   <button key={s.id} type="button" aria-label={`copy ${s.platform} address`}
                     title={copiedId === s.id ? "copied!" : `copy ${s.platform} address`}
                     onClick={() => { navigator.clipboard.writeText(s.url); setCopiedId(s.id); setTimeout(() => setCopiedId((c) => (c === s.id ? null : c)), 1500); }}
-                    className={shared} {...handlers}>
+                    className={shared} style={{ color: baseColor }} {...handlers}>
                     {copiedId === s.id ? <span className="text-xs font-mono">✓</span> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
                   </button>
                 );
               }
               return (
                 <a key={s.id} href={s.url} target="_blank" rel="noreferrer noopener" aria-label={s.platform}
-                  className={shared} {...handlers}>
+                  className={shared} style={{ color: baseColor }} {...handlers}>
                   {PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website}
                 </a>
               );
@@ -233,7 +242,7 @@ function PublicProfile() {
         )}
 
         {videoEmbed && (
-          <div className="mt-8 w-full animate-fade-up aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black/40" style={{ animationDelay: "300ms" }}>
+          <div className="mt-8 w-full animate-fade-up aspect-video overflow-hidden rounded-2xl border" style={{ animationDelay: "300ms", ...boxStyle, backdropFilter: `blur(${blurPx}px)` }}>
             {videoEmbed.type === "iframe" ? (
               <iframe src={videoEmbed.src} className="h-full w-full" style={{ border: 0 }} loading="lazy"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -249,11 +258,12 @@ function PublicProfile() {
             {links.map((l: { id: string; title: string; url: string }) => (
               <a key={l.id} href={l.url} target="_blank" rel="noreferrer noopener"
                 onClick={() => handleLinkClick(l.id)}
-                className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-white/10 bg-black/30 backdrop-blur-xl px-4 py-3 transition"
+                className="group relative flex items-center justify-between overflow-hidden rounded-xl border px-4 py-3 transition"
+                style={{ ...boxStyle, backdropFilter: `blur(${blurPx}px)` }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${accent}99`; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = ""; }}>
-                <div className="font-medium text-sm text-white">{l.title}</div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-white/50 transition group-hover:translate-x-1"><path d="M7 17L17 7M8 7h9v9"/></svg>
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = boxStyle.borderColor; }}>
+                <div className="font-medium text-sm" style={{ color: textColor }}>{l.title}</div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 transition group-hover:translate-x-1" style={{ color: `${textColor}80` }}><path d="M7 17L17 7M8 7h9v9"/></svg>
               </a>
             ))}
           </div>
