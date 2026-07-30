@@ -243,7 +243,7 @@ function PublicProfile() {
 
         <div className="relative mt-4 inline-block animate-fade-up" style={{ animationDelay: "60ms" }}
           onMouseEnter={() => setNameHovered(true)} onMouseLeave={() => setNameHovered(false)}>
-          <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor }}>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: profile.font || "Space Grotesk" }}>
             {displayName}
           </h1>
           {profile.uid != null && (
@@ -254,7 +254,7 @@ function PublicProfile() {
         </div>
 
         {profile.bio && (
-          <p className="mt-2 animate-fade-up max-w-sm text-sm italic transition-opacity duration-150" style={{ animationDelay: "120ms", color: textColor, opacity: nameHovered ? 0 : 0.65 }}>
+          <p className="mt-2 animate-fade-up max-w-sm text-sm italic transition-opacity duration-150" style={{ animationDelay: "120ms", color: textColor, opacity: nameHovered ? 0 : 0.65, fontFamily: profile.font || "Space Grotesk" }}>
             {profile.bio}
           </p>
         )}
