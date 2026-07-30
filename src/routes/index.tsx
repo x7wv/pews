@@ -55,6 +55,7 @@ function Landing() {
       <div className="fixed inset-0 -z-20">
         <img src={bg} alt="" className="h-full w-full object-cover opacity-40" />
         <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 0%, oklch(0.08 0.01 300 / 0.9) 70%, oklch(0.05 0.01 300) 100%)" }} />
+        <div className="absolute inset-0 grid-overlay opacity-40" />
       </div>
       <Particles />
       <Header />
@@ -77,9 +78,10 @@ function Landing() {
             const u = handle.trim().replace(/[^a-zA-Z0-9_]/g, "");
             window.location.href = `/auth?mode=signup&u=${encodeURIComponent(u)}`;
           }}
-          className="mt-10 flex w-full max-w-md items-center gap-2 rounded-2xl border border-border bg-card/60 p-2 backdrop-blur-xl animate-fade-up"
+          className="hud-corners relative mt-10 flex w-full max-w-md items-center gap-2 overflow-hidden rounded-2xl border border-border bg-card/60 p-2 backdrop-blur-xl animate-fade-up"
           style={{ animationDelay: "0.15s" }}
         >
+          <span className="pointer-events-none absolute left-0 right-0 h-px" style={{ background: "linear-gradient(90deg, transparent, oklch(0.62 0.19 250 / 80%), transparent)", animation: "scan-sweep 3s ease-in-out infinite" }} />
           <div className="pl-3 text-sm font-mono text-muted-foreground">pews.lol/u/</div>
           <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="yourname"
             className="flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
@@ -114,7 +116,7 @@ function Landing() {
             { t: "custom domains", d: "point your own domain at your pews page. yourname.com.", i: "🌐" },
           ].map((f, i) => (
             <div key={f.t}
-              className="group animate-fade-up rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_var(--color-primary)]"
+              className="hud-corners group animate-fade-up rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_var(--color-primary)]"
               style={{ animationDelay: `${i * 60}ms` }}>
               <div className="text-3xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">{f.i}</div>
               <div className="text-sm font-semibold text-gradient">{f.t}</div>
