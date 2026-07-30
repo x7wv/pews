@@ -44,3 +44,35 @@ export function videoEmbedUrl(url: string): { type: "iframe" | "video"; src: str
     return null;
   }
 }
+
+export async function fetchTrackTitle(url: string): Promise<string | null> {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("open.spotify.com")) {
+      const res = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.title ?? null;
+    }
+    if (u.hostname.includes("soundcloud.com")) {
+      const res = await fetch(`https://soundcloud.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.title ?? null;
+    }
+    if (/\.(mp3|wav|ogg|m4a)$/i.test(u.pathname)) {
+      const name = u.pathname.split("/").pop() ?? "";
+      return decodeURIComponent(name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ")) || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
