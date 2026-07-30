@@ -46,6 +46,7 @@ export type Database = {
           click_count: number
           created_at: string
           id: string
+          image_url: string | null
           position: number
           title: string
           url: string
@@ -55,6 +56,7 @@ export type Database = {
           click_count?: number
           created_at?: string
           id?: string
+          image_url?: string | null
           position?: number
           title: string
           url: string
@@ -62,6 +64,7 @@ export type Database = {
         }
         Update: {
           click_count?: number
+          image_url?: string | null
           created_at?: string
           id?: string
           position?: number
@@ -174,6 +177,8 @@ export type Database = {
           cursor_url: string | null
           discord_id: string | null
           display_name: string | null
+          entry_font: string
+          entry_message: string | null
           font: string
           icon_color: string
           id: string
@@ -204,6 +209,8 @@ export type Database = {
           cursor_url?: string | null
           discord_id?: string | null
           display_name?: string | null
+          entry_font?: string
+          entry_message?: string | null
           font?: string
           icon_color?: string
           id: string
@@ -233,6 +240,8 @@ export type Database = {
           cursor_url?: string | null
           discord_id?: string | null
           display_name?: string | null
+          entry_font?: string
+          entry_message?: string | null
           font?: string
           icon_color?: string
           id?: string
