@@ -182,6 +182,7 @@ export type Database = {
           song_url: string | null
           swap_box_colors: boolean
           text_color: string
+          uid: number
           updated_at: string
           username: string
           video_url: string | null
