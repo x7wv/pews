@@ -109,6 +109,14 @@ function PublicProfile() {
   const [views, setViews] = useState(profile.view_count);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const lastProgressUpdate = useRef(0);
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLMediaElement>) => {
+    const t = e.currentTarget.currentTime;
+    if (Math.abs(t - lastProgressUpdate.current) >= 1) {
+      lastProgressUpdate.current = t;
+      setProgress(t);
+    }
+  };
   const [duration, setDuration] = useState(0);
   const [bgFailed, setBgFailed] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
@@ -231,7 +239,10 @@ function PublicProfile() {
     if (!el || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
-    el.currentTime = pct * duration;
+    const t = pct * duration;
+    el.currentTime = t;
+    lastProgressUpdate.current = t;
+    setProgress(t);
   }
 
   function changeVolume(v: number) {
@@ -278,7 +289,7 @@ function PublicProfile() {
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
           {videoEmbed ? (
             <video ref={videoRef} src={videoEmbed.src} autoPlay loop muted playsInline
-              onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
+              onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
               className="h-full w-full object-cover" />
           ) : hasCustomBg ? (
@@ -295,7 +306,7 @@ function PublicProfile() {
 
       {mp3Active && (
         <audio ref={audioRef} src={songEmbed.src} loop
-          onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
+          onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
           onError={() => setPlaybackFailed(true)}
           onEnded={() => setPlaying(false)} className="hidden" />
