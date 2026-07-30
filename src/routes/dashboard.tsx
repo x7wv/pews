@@ -24,6 +24,7 @@ type Profile = {
   id: string; username: string; display_name: string | null; bio: string | null;
   avatar_url: string | null; background_url: string | null; accent_color: string;
   song_url: string | null; video_url: string | null; photo_url: string | null; discord_id: string | null;
+  song_title: string | null; song_art_url: string | null;
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   font: string;
@@ -122,6 +123,7 @@ function Dashboard() {
       avatar_url: profile.avatar_url, background_url: profile.background_url, accent_color: profile.accent_color,
       song_url: profile.song_url, video_url: profile.video_url, photo_url: profile.photo_url,
       discord_id: profile.discord_id,
+      song_title: profile.song_title, song_art_url: profile.song_art_url,
       background_color: profile.background_color, text_color: profile.text_color, icon_color: profile.icon_color,
       profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
@@ -302,6 +304,10 @@ function Dashboard() {
               <div className="mt-1 text-[11px] text-muted-foreground">paste a spotify/soundcloud/apple music track link, or upload an mp3 below</div>
               <div className="mt-2">
                 <MediaDropzone value={profile.song_url} onUploaded={(url) => setProfile({ ...profile, song_url: url })} accept="audio/mpeg,.mp3" label="drag & drop an mp3" />
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <input value={profile.song_title ?? ""} onChange={(e) => setProfile({ ...profile, song_title: e.target.value })} className="input" placeholder="custom song title (optional)" />
+                <ImageDropzone value={profile.song_art_url} onUploaded={(url) => setProfile({ ...profile, song_art_url: url })} preview="round" hint="custom song artwork" />
               </div>
             </Field>
             <Field label="video">
