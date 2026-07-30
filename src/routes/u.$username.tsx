@@ -161,7 +161,8 @@ function PublicProfile() {
     ? { background: `${accent}26`, borderColor: `${accent}80` }
     : { background: "rgba(0,0,0,0.35)", borderColor: "rgba(255,255,255,0.1)" };
 
-  const mp3Active = songEmbed?.type === "audio";
+  const mp3Available = songEmbed?.type === "audio";
+  const mp3Active = mp3Available && (profile.audio_source !== "video" || !videoEmbed);
 
   useEffect(() => {
     if (!profile.song_url) return;
@@ -281,7 +282,7 @@ function PublicProfile() {
               onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
               className="h-full w-full object-cover" />
           ) : hasCustomBg ? (
-            <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity }} />
+            <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity, filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined, transform: blurPx > 0 ? "scale(1.1)" : undefined }} />
           ) : null}
         </div>
         {!videoEmbed && !hasCustomBg && (
@@ -292,7 +293,7 @@ function PublicProfile() {
       <Particles color={`${accent}66`} />
 
 
-      {!videoEmbed && songEmbed?.type === "audio" && (
+      {mp3Active && (
         <audio ref={audioRef} src={songEmbed.src} loop
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
@@ -378,14 +379,14 @@ function PublicProfile() {
                   <button key={s.id} type="button" aria-label={`copy ${s.platform} address`}
                     title={copiedId === s.id ? "copied!" : `copy ${s.platform} address`}
                     onClick={() => { navigator.clipboard.writeText(s.url); setCopiedId(s.id); setTimeout(() => setCopiedId((c) => (c === s.id ? null : c)), 1500); }}
-                    className={shared} style={{ color: baseColor }} {...handlers}>
+                    className={shared} style={{ color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...handlers}>
                     {copiedId === s.id ? <span className="text-xs font-mono">✓</span> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
                   </button>
                 );
               }
               return (
                 <a key={s.id} href={s.url} target="_blank" rel="noreferrer noopener" aria-label={s.platform}
-                  className={shared} style={{ color: baseColor }} {...handlers}>
+                  className={shared} style={{ color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...handlers}>
                   {PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website}
                 </a>
               );
