@@ -149,12 +149,13 @@ function PublicProfile() {
 
   const accent = profile.accent_color || "#3b82f6";
   const bgImage = profile.photo_url || profile.background_url || defaultBg;
+  const hasCustomBg = !!(profile.photo_url || profile.background_url);
   const displayName = profile.display_name || profile.username;
   const songEmbed = profile.song_url ? songEmbedUrl(profile.song_url) : null;
   const videoEmbed = profile.video_url ? videoEmbedUrl(profile.video_url) : null;
   const textColor = profile.text_color || "#ffffff";
   const iconColor = profile.monochrome_icons ? (profile.icon_color || "#ffffff") : undefined;
-  const opacity = videoEmbed ? 1 : (profile.profile_opacity ?? 60) / 100;
+  const opacity = (profile.profile_opacity ?? 60) / 100;
   const blurPx = profile.profile_blur ?? 20;
   const boxStyle = profile.swap_box_colors
     ? { background: `${accent}26`, borderColor: `${accent}80` }
@@ -263,21 +264,21 @@ function PublicProfile() {
           </div>
         </button>
       )}
-      <div className="fixed inset-0 -z-20 overflow-hidden" style={{ background: videoEmbed ? "#000" : (profile.background_color || "#080808") }}>
+      <div className="fixed inset-0 -z-20 overflow-hidden" style={{ background: hasCustomBg || videoEmbed ? "#000" : (profile.background_color || "#080808") }}>
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
           {videoEmbed ? (
             <video ref={videoRef} src={videoEmbed.src} autoPlay loop muted playsInline
               onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
               onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-              className="h-full w-full object-cover" style={{ opacity }} />
-          ) : (
+              className="h-full w-full object-cover" />
+          ) : hasCustomBg ? (
             <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity }} />
-          )}
+          ) : null}
         </div>
-        {!videoEmbed && (
+        {!videoEmbed && !hasCustomBg && (
           <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 60% at 50% 40%, transparent 0%, oklch(0.03 0.005 300 / 0.75) 60%, oklch(0.02 0.005 300 / 0.97) 100%)" }} />
         )}
-        {!videoEmbed && <div className="absolute inset-0 grid-overlay opacity-30" />}
+        {!videoEmbed && !hasCustomBg && <div className="absolute inset-0 grid-overlay opacity-30" />}
       </div>
       <Particles color={`${accent}66`} />
 
@@ -314,7 +315,7 @@ function PublicProfile() {
       <section className="relative z-10 mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-20 text-center">
         <div className="animate-fade-up" style={{ animationDelay: "0ms" }}>
           <div className="relative mx-auto h-20 w-20">
-            <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 30px ${accent}80, 0 0 60px ${accent}30` }} />
+            {!profile.no_glow && <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 30px ${accent}80, 0 0 60px ${accent}30` }} />}
             <img
               src={avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar)}
               onError={() => setAvatarFailed(true)}
@@ -360,7 +361,7 @@ function PublicProfile() {
                 ? (iconColor ?? `${textColor}99`)
                 : (PLATFORM_BRAND_COLORS[s.platform] ?? `${textColor}99`);
               const handlers = profile.monochrome_icons ? {
-                onMouseEnter: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = accent; e.currentTarget.style.filter = `drop-shadow(0 0 8px ${accent}99)`; },
+                onMouseEnter: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = accent; if (!profile.no_glow) e.currentTarget.style.filter = `drop-shadow(0 0 6px ${accent}) drop-shadow(0 0 16px ${accent}b3)`; },
                 onMouseLeave: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = baseColor; e.currentTarget.style.filter = ""; },
               } : {};
               if (isCrypto) {
