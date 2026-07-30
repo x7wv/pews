@@ -397,7 +397,7 @@ function Dashboard() {
                 <div className="text-[11px] text-muted-foreground">force all social icons to your icon color instead of accent-tinted</div>
               </div>
               <button onClick={() => setProfile({ ...profile, monochrome_icons: !profile.monochrome_icons })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.monochrome_icons ? "bg-primary" : "bg-white/10"}`}>
+                className={`relative h-6 w-11 rounded-full transition ${profile.monochrome_icons ? "bg-primary" : "bg-white/20"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.monochrome_icons ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
@@ -407,7 +407,7 @@ function Dashboard() {
                 <div className="text-[11px] text-muted-foreground">invert card backgrounds — use your accent as the fill instead of the border</div>
               </div>
               <button onClick={() => setProfile({ ...profile, swap_box_colors: !profile.swap_box_colors })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.swap_box_colors ? "bg-primary" : "bg-white/10"}`}>
+                className={`relative h-6 w-11 rounded-full transition ${profile.swap_box_colors ? "bg-primary" : "bg-white/20"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.swap_box_colors ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
@@ -417,7 +417,7 @@ function Dashboard() {
                 <div className="text-[11px] text-muted-foreground">show a volume slider on your page for your song or video audio</div>
               </div>
               <button onClick={() => setProfile({ ...profile, show_volume_control: !profile.show_volume_control })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.show_volume_control ? "bg-primary" : "bg-white/10"}`}>
+                className={`relative h-6 w-11 rounded-full transition ${profile.show_volume_control ? "bg-primary" : "bg-white/20"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.show_volume_control ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
