@@ -8,7 +8,6 @@ import { QRCodeCard } from "@/components/pews/QRCode";
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import { SOCIAL_URL_PREFIX, stripPrefix, applyPrefix } from "@/lib/social-prefixes";
-import { BADGE_OPTIONS } from "@/lib/badges";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -27,7 +26,7 @@ type Profile = {
   avatar_url: string | null; background_url: string | null; accent_color: string;
   song_url: string | null; video_url: string | null; photo_url: string | null; discord_id: string | null;
   song_title: string | null; song_art_url: string | null;
-  badges: string[]; show_volume_control: boolean;
+  show_volume_control: boolean;
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   font: string;
@@ -47,7 +46,7 @@ const PLATFORMS = [
   "bitcoin", "ethereum", "litecoin", "monero", "wallet",
 ];
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
-const TABS = ["profile", "appearance", "fonts", "badges", "links", "analytics", "themes", "domain", "share"] as const;
+const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "share"] as const;
 type Tab = typeof TABS[number];
 
 const MAX_LINKS_PER_ACCOUNT = 1;
@@ -73,6 +72,7 @@ function Dashboard() {
   const [clicks, setClicks] = useState<ClickRow[]>([]);
   const [range, setRange] = useState<"24h" | "7d" | "30d" | "all">("7d");
   const [saving, setSaving] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [draftTheme, setDraftTheme] = useState<{ name: string; accent: string; background: string; particle: string } | null>(null);
 
   useEffect(() => {
@@ -118,8 +118,22 @@ function Dashboard() {
     })();
   }, [tab, range, links, session]);
 
+  useEffect(() => {
+    if (!profile) return;
+    const uname = profile.username.trim().toLowerCase();
+    if (!uname || uname.length < 3) { setUsernameStatus("idle"); return; }
+    setUsernameStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").eq("username", uname).maybeSingle();
+      if (!data || data.id === profile.id) setUsernameStatus("available");
+      else setUsernameStatus("taken");
+    }, 400);
+    return () => clearTimeout(t);
+  }, [profile?.username, profile?.id]);
+
   async function saveProfile() {
     if (!profile) return;
+    if (usernameStatus === "taken") return toast.error("that username is already taken");
     setSaving(true);
     const { error } = await supabase.from("profiles").update({
       username: profile.username, display_name: profile.display_name, bio: profile.bio,
@@ -127,7 +141,7 @@ function Dashboard() {
       song_url: profile.song_url, video_url: profile.video_url, photo_url: profile.photo_url,
       discord_id: profile.discord_id,
       song_title: profile.song_title, song_art_url: profile.song_art_url,
-      badges: profile.badges, show_volume_control: profile.show_volume_control,
+      show_volume_control: profile.show_volume_control,
       background_color: profile.background_color, text_color: profile.text_color, icon_color: profile.icon_color,
       profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
@@ -286,6 +300,8 @@ function Dashboard() {
           <Card title="profile">
             <Field label="username">
               <input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="input" />
+              {usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
+              {usernameStatus === "available" && <div className="mt-1 text-[11px] text-emerald-400">User available!</div>}
             </Field>
             <Field label="display name">
               <input value={profile.display_name ?? ""} onChange={(e) => setProfile({ ...profile, display_name: e.target.value })} className="input" />
@@ -296,8 +312,15 @@ function Dashboard() {
             <Field label="avatar">
               <ImageDropzone value={profile.avatar_url} onUploaded={(url) => setProfile({ ...profile, avatar_url: url })} preview="round" />
             </Field>
-            <Field label="background image">
-              <ImageDropzone value={profile.background_url} onUploaded={(url) => setProfile({ ...profile, background_url: url })} preview="wide" />
+            <Field label="background">
+              <BackgroundDropzone
+                backgroundUrl={profile.background_url}
+                videoUrl={profile.video_url}
+                onUploaded={(kind, url) => setProfile(kind === "video"
+                  ? { ...profile, video_url: url, background_url: null }
+                  : { ...profile, background_url: url, video_url: null })}
+              />
+              <div className="mt-1 text-[11px] text-muted-foreground">supports .png, .webp, .gif, or .mp4 (autoplaying background video)</div>
             </Field>
             <Field label="showcase photo">
               <ImageDropzone value={profile.photo_url} onUploaded={(url) => setProfile({ ...profile, photo_url: url })} preview="wide" />
@@ -312,13 +335,6 @@ function Dashboard() {
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <input value={profile.song_title ?? ""} onChange={(e) => setProfile({ ...profile, song_title: e.target.value })} className="input" placeholder="custom song title (optional)" />
                 <ImageDropzone value={profile.song_art_url} onUploaded={(url) => setProfile({ ...profile, song_art_url: url })} preview="round" hint="custom song artwork" />
-              </div>
-            </Field>
-            <Field label="video">
-              <input value={profile.video_url ?? ""} onChange={(e) => setProfile({ ...profile, video_url: e.target.value })} className="input" placeholder="direct .mp4 link" />
-              <div className="mt-1 text-[11px] text-muted-foreground">mp4 only — used as an autoplaying background video. paste a link or upload below</div>
-              <div className="mt-2">
-                <MediaDropzone value={profile.video_url} onUploaded={(url) => setProfile({ ...profile, video_url: url })} accept="video/mp4,.mp4" label="drag & drop an mp4" />
               </div>
             </Field>
             <Field label="discord presence">
@@ -373,7 +389,7 @@ function Dashboard() {
               </Field>
             </div>
             <Field label="custom cursor">
-              <ImageDropzone value={profile.cursor_url} onUploaded={(url) => setProfile({ ...profile, cursor_url: url })} preview="round" hint="32×32 png recommended" />
+              <ImageDropzone value={profile.cursor_url} onUploaded={(url) => setProfile({ ...profile, cursor_url: url })} preview="round" hint="auto-resized to 32×32" resizeTo={32} />
             </Field>
             <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
               <div>
@@ -381,7 +397,7 @@ function Dashboard() {
                 <div className="text-[11px] text-muted-foreground">force all social icons to your icon color instead of accent-tinted</div>
               </div>
               <button onClick={() => setProfile({ ...profile, monochrome_icons: !profile.monochrome_icons })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.monochrome_icons ? "bg-primary" : "bg-background/60 border border-border"}`}>
+                className={`relative h-6 w-11 rounded-full transition ${profile.monochrome_icons ? "bg-primary" : "bg-white/10"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.monochrome_icons ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
@@ -391,7 +407,7 @@ function Dashboard() {
                 <div className="text-[11px] text-muted-foreground">invert card backgrounds — use your accent as the fill instead of the border</div>
               </div>
               <button onClick={() => setProfile({ ...profile, swap_box_colors: !profile.swap_box_colors })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.swap_box_colors ? "bg-primary" : "bg-background/60 border border-border"}`}>
+                className={`relative h-6 w-11 rounded-full transition ${profile.swap_box_colors ? "bg-primary" : "bg-white/10"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.swap_box_colors ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
@@ -401,7 +417,7 @@ function Dashboard() {
                 <div className="text-[11px] text-muted-foreground">show a volume slider on your page for your song or video audio</div>
               </div>
               <button onClick={() => setProfile({ ...profile, show_volume_control: !profile.show_volume_control })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.show_volume_control ? "bg-primary" : "bg-background/60 border border-border"}`}>
+                className={`relative h-6 w-11 rounded-full transition ${profile.show_volume_control ? "bg-primary" : "bg-white/10"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.show_volume_control ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
@@ -420,31 +436,6 @@ function Dashboard() {
                   <div className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: f }}>{f}</div>
                 </button>
               ))}
-            </div>
-          </Card>
-        )}
-
-        {tab === "badges" && (
-          <Card title="badges">
-            <div className="text-[11px] text-muted-foreground">
-              toggle badges to show on your profile. these are self-selected for now — automatically awarding badges
-              (e.g. for boosting your Discord) requires a Discord bot running separately, which isn't set up yet.
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {BADGE_OPTIONS.map((b) => {
-                const active = profile.badges.includes(b.id);
-                return (
-                  <button key={b.id}
-                    onClick={() => setProfile({
-                      ...profile,
-                      badges: active ? profile.badges.filter((x) => x !== b.id) : [...profile.badges, b.id],
-                    })}
-                    className={`flex items-center gap-2 rounded-xl border p-3 text-left transition ${active ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}>
-                    <span className="text-lg">{b.emoji}</span>
-                    <span className="text-sm">{b.label}</span>
-                  </button>
-                );
-              })}
             </div>
           </Card>
         )}
@@ -712,6 +703,76 @@ function Card({ title, action, children }: { title: string; action?: React.React
     </div>
   );
 }
+function BackgroundDropzone({ backgroundUrl, videoUrl, onUploaded }: {
+  backgroundUrl: string | null;
+  videoUrl: string | null;
+  onUploaded: (kind: "image" | "video", url: string) => void;
+}) {
+  const { session } = useSession();
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const allowedExts = ["png", "webp", "gif", "mp4"];
+
+  async function upload(file: File) {
+    if (!session) return toast.error("sign in required");
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!allowedExts.includes(ext)) return toast.error("only .png, .webp, .gif, or .mp4 files are supported");
+    if (file.size > 30 * 1024 * 1024) return toast.error("file too large — 30MB max");
+    setUploading(true);
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    const path = `${session.user.id}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage.from("profile-media").upload(path, file, { upsert: true });
+    setUploading(false);
+    if (error) return toast.error(error.message);
+    const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
+    onUploaded(ext === "mp4" ? "video" : "image", data.publicUrl);
+    toast.success("uploaded");
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) upload(file);
+  }
+
+  const currentUrl = videoUrl || backgroundUrl;
+  const isVideo = !!videoUrl;
+  const fileName = currentUrl ? decodeURIComponent(currentUrl.split("/").pop() ?? "").replace(/^\d+-/, "") : null;
+
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={onDrop}
+      onClick={() => inputRef.current?.click()}
+      className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed p-3 transition ${dragging ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}
+    >
+      <input ref={inputRef} type="file" accept=".png,.webp,.gif,.mp4,image/png,image/webp,image/gif,video/mp4" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
+      {currentUrl ? (
+        isVideo ? (
+          <video src={currentUrl} muted className="h-12 w-20 flex-shrink-0 rounded-lg object-cover" />
+        ) : (
+          <img src={currentUrl} alt="" className="h-12 w-20 flex-shrink-0 rounded-lg object-cover" />
+        )
+      ) : (
+        <div className="flex h-12 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-background/50 text-muted-foreground">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+      )}
+      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+        {uploading ? "uploading…" : fileName || "drag & drop an image or mp4"}
+      </span>
+      {currentUrl && !uploading && (
+        <button onClick={(e) => { e.stopPropagation(); onUploaded("image", ""); }} aria-label="remove"
+          className="flex-shrink-0 text-red-400 transition hover:text-red-300">×</button>
+      )}
+    </div>
+  );
+}
+
 function MediaDropzone({ value, onUploaded, accept, label }: {
   value: string | null;
   onUploaded: (url: string) => void;
@@ -730,7 +791,8 @@ function MediaDropzone({ value, onUploaded, accept, label }: {
     if (!allowedExts.includes(ext)) return toast.error(`only .${allowedExts.join(", .")} files are supported`);
     if (file.size > 30 * 1024 * 1024) return toast.error("file too large — 30MB max");
     setUploading(true);
-    const path = `${session.user.id}/${Date.now()}.${ext}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    const path = `${session.user.id}/${Date.now()}-${safeName}`;
     const { error } = await supabase.storage.from("profile-media").upload(path, file, { upsert: true });
     setUploading(false);
     if (error) return toast.error(error.message);
@@ -746,7 +808,7 @@ function MediaDropzone({ value, onUploaded, accept, label }: {
     if (file) upload(file);
   }
 
-  const isUploaded = value && allowedExts.some((ext) => value.toLowerCase().includes(`.${ext}`));
+  const fileName = value ? decodeURIComponent(value.split("/").pop() ?? "").replace(/^\d+-/, "") : null;
 
   return (
     <div
@@ -759,32 +821,64 @@ function MediaDropzone({ value, onUploaded, accept, label }: {
       <input ref={inputRef} type="file" accept={accept} className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4 flex-shrink-0 text-muted-foreground"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-      <span className="text-xs text-muted-foreground">
-        {uploading ? "uploading…" : isUploaded ? "uploaded ✓ — drop another to replace" : label}
+      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+        {uploading ? "uploading…" : fileName || label}
       </span>
+      {fileName && !uploading && (
+        <button onClick={(e) => { e.stopPropagation(); onUploaded(""); }} aria-label="remove"
+          className="flex-shrink-0 text-red-400 transition hover:text-red-300">×</button>
+      )}
     </div>
   );
 }
 
-function ImageDropzone({ value, onUploaded, preview, hint }: {
+function ImageDropzone({ value, onUploaded, preview, hint, resizeTo }: {
   value: string | null;
   onUploaded: (url: string) => void;
   preview: "round" | "wide";
   hint?: string;
+  resizeTo?: number;
 }) {
   const { session } = useSession();
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  function resizeImage(file: File, size: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(url); return reject(new Error("canvas unsupported")); }
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, 0, 0, size, size);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (blob) resolve(blob); else reject(new Error("resize failed"));
+        }, "image/png");
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("invalid image")); };
+      img.src = url;
+    });
+  }
+
   async function upload(file: File) {
     if (!session) return toast.error("sign in required");
     if (!file.type.startsWith("image/")) return toast.error("please drop an image file");
     if (file.size > 8 * 1024 * 1024) return toast.error("image too large — 8MB max");
     setUploading(true);
-    const ext = file.name.split(".").pop() || "png";
+    let uploadBlob: Blob = file;
+    let ext = file.name.split(".").pop() || "png";
+    if (resizeTo) {
+      try { uploadBlob = await resizeImage(file, resizeTo); ext = "png"; }
+      catch { setUploading(false); return toast.error("couldn't process that image"); }
+    }
     const path = `${session.user.id}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("profile-media").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("profile-media").upload(path, uploadBlob, { upsert: true });
     setUploading(false);
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
