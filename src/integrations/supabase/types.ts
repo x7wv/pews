@@ -166,14 +166,22 @@ export type Database = {
         Row: {
           accent_color: string
           avatar_url: string | null
+          background_color: string
           background_url: string | null
           bio: string | null
           created_at: string
+          cursor_url: string | null
           discord_id: string | null
           display_name: string | null
+          icon_color: string
           id: string
+          monochrome_icons: boolean
           photo_url: string | null
+          profile_blur: number
+          profile_opacity: number
           song_url: string | null
+          swap_box_colors: boolean
+          text_color: string
           updated_at: string
           username: string
           video_url: string | null
@@ -182,14 +190,22 @@ export type Database = {
         Insert: {
           accent_color?: string
           avatar_url?: string | null
+          background_color?: string
           background_url?: string | null
           bio?: string | null
           created_at?: string
+          cursor_url?: string | null
           discord_id?: string | null
           display_name?: string | null
+          icon_color?: string
           id: string
+          monochrome_icons?: boolean
           photo_url?: string | null
+          profile_blur?: number
+          profile_opacity?: number
           song_url?: string | null
+          swap_box_colors?: boolean
+          text_color?: string
           updated_at?: string
           username: string
           video_url?: string | null
@@ -198,14 +214,22 @@ export type Database = {
         Update: {
           accent_color?: string
           avatar_url?: string | null
+          background_color?: string
           background_url?: string | null
           bio?: string | null
           created_at?: string
+          cursor_url?: string | null
           discord_id?: string | null
           display_name?: string | null
+          icon_color?: string
           id?: string
+          monochrome_icons?: boolean
           photo_url?: string | null
+          profile_blur?: number
+          profile_opacity?: number
           song_url?: string | null
+          swap_box_colors?: boolean
+          text_color?: string
           updated_at?: string
           username?: string
           video_url?: string | null
