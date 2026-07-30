@@ -21,25 +21,12 @@ export function songEmbedUrl(url: string): { type: "iframe" | "audio"; src: stri
   }
 }
 
-export function videoEmbedUrl(url: string): { type: "iframe" | "video"; src: string } | null {
+export function videoEmbedUrl(url: string): { src: string } | null {
   if (!url) return null;
   try {
     const u = new URL(url);
-    if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      let id = "";
-      if (u.hostname.includes("youtu.be")) id = u.pathname.slice(1);
-      else if (u.searchParams.get("v")) id = u.searchParams.get("v") as string;
-      else if (u.pathname.startsWith("/embed/")) id = u.pathname.replace("/embed/", "");
-      if (id) return { type: "iframe", src: `https://www.youtube.com/embed/${id}` };
-    }
-    if (u.hostname.includes("vimeo.com")) {
-      const id = u.pathname.split("/").filter(Boolean).pop();
-      if (id) return { type: "iframe", src: `https://player.vimeo.com/video/${id}` };
-    }
-    if (/\.(mp4|webm|mov)$/i.test(u.pathname)) {
-      return { type: "video", src: url };
-    }
-    return { type: "video", src: url };
+    if (/\.mp4$/i.test(u.pathname)) return { src: url };
+    return null;
   } catch {
     return null;
   }
