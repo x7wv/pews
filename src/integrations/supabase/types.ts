@@ -169,6 +169,7 @@ export type Database = {
           background_url: string | null
           bio: string | null
           created_at: string
+          discord_id: string | null
           display_name: string | null
           id: string
           photo_url: string | null
@@ -184,6 +185,7 @@ export type Database = {
           background_url?: string | null
           bio?: string | null
           created_at?: string
+          discord_id?: string | null
           display_name?: string | null
           id: string
           photo_url?: string | null
@@ -199,6 +201,7 @@ export type Database = {
           background_url?: string | null
           bio?: string | null
           created_at?: string
+          discord_id?: string | null
           display_name?: string | null
           id?: string
           photo_url?: string | null
