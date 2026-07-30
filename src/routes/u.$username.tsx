@@ -151,7 +151,7 @@ function PublicProfile() {
   const videoEmbed = profile.video_url ? videoEmbedUrl(profile.video_url) : null;
   const textColor = profile.text_color || "#ffffff";
   const iconColor = profile.monochrome_icons ? (profile.icon_color || "#ffffff") : undefined;
-  const opacity = (profile.profile_opacity ?? 60) / 100;
+  const opacity = videoEmbed ? 1 : (profile.profile_opacity ?? 60) / 100;
   const blurPx = profile.profile_blur ?? 20;
   const boxStyle = profile.swap_box_colors
     ? { background: `${accent}26`, borderColor: `${accent}80` }
@@ -186,7 +186,7 @@ function PublicProfile() {
   function toggleAudio() {
     if (mp3Active && audioRef.current && !playbackFailed) {
       const el = audioRef.current;
-      if (el.muted) { el.muted = false; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
+      if (el.muted) { el.muted = false; el.volume = el.volume || 0.5; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
       else if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
       else { el.pause(); setPlaying(false); }
       return;
@@ -231,8 +231,10 @@ function PublicProfile() {
             <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity }} />
           )}
         </div>
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 60% at 50% 40%, transparent 0%, oklch(0.03 0.005 300 / 0.75) 60%, oklch(0.02 0.005 300 / 0.97) 100%)" }} />
-        <div className="absolute inset-0 grid-overlay opacity-30" />
+        {!videoEmbed && (
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 60% at 50% 40%, transparent 0%, oklch(0.03 0.005 300 / 0.75) 60%, oklch(0.02 0.005 300 / 0.97) 100%)" }} />
+        )}
+        {!videoEmbed && <div className="absolute inset-0 grid-overlay opacity-30" />}
       </div>
       <Particles color={`${accent}66`} />
 
@@ -351,7 +353,7 @@ function PublicProfile() {
         )}
 
         {mp3Active && (
-          <div className="fixed left-5 top-1/2 z-30 w-64 max-w-[70vw] -translate-y-1/2 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
+          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
               style={{ backdropFilter: `blur(${blurPx}px)`, animationDelay: "420ms" }}>
               <img
                 src={profile.song_art_url || (avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar))}
