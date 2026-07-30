@@ -48,7 +48,7 @@ function AuthPage() {
           toast.error("username must be 3–20 chars (letters, numbers, underscores)");
           return;
         }
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -57,7 +57,11 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("account created — welcome!");
+        if (data.session) {
+          toast.success("account created — welcome!");
+        } else {
+          toast.success("check your email to confirm your account before signing in");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
