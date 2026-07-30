@@ -85,9 +85,10 @@ function AuthPage() {
 
   return (
     <main className="relative min-h-screen font-sans">
+      <div className="pointer-events-none fixed inset-0 -z-10 grid-overlay opacity-40" />
       <Header />
       <section className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 pt-24 pb-10">
-        <div className="rounded-3xl border border-border bg-card/60 backdrop-blur-2xl p-8 animate-fade-up">
+        <div className="hud-corners rounded-3xl border border-border bg-card/60 backdrop-blur-2xl p-8 animate-fade-up">
           <div className="text-center">
             <h1 className="font-display text-3xl font-bold text-gradient">
               {mode === "signup" ? "claim your name" : "welcome back"}
