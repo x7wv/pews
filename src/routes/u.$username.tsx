@@ -115,6 +115,7 @@ function PublicProfile() {
   const [playbackFailed, setPlaybackFailed] = useState(false);
   const [nameHovered, setNameHovered] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [volume, setVolume] = useState(0.5);
   const bgRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -172,7 +173,7 @@ function PublicProfile() {
       if (!el) return;
       el.volume = 0.5;
       el.muted = false;
-      el.play().then(() => { setPlaying(true); setMuted(false); }).catch(() => {
+      el.play().then(() => { setPlaying(true); setMuted(false); setVolume(0.5); }).catch(() => {
         // browser blocked audible autoplay — fall back to the silent-then-click-to-unmute trick
         el.muted = true;
         setMuted(true);
@@ -180,20 +181,23 @@ function PublicProfile() {
       });
       return;
     }
-    if (videoEmbed) setPlaying(true);
+    if (videoEmbed) {
+      setPlaying(true);
+      if (videoRef.current) { videoRef.current.volume = 0.5; setVolume(0.5); }
+    }
   }, [mp3Active, songEmbed?.src, videoEmbed]);
 
   function toggleAudio() {
     if (mp3Active && audioRef.current && !playbackFailed) {
       const el = audioRef.current;
-      if (el.muted) { el.muted = false; el.volume = el.volume || 0.5; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
+      if (el.muted) { el.muted = false; el.volume = el.volume || 0.5; setMuted(false); setVolume(el.volume); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
       else if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
       else { el.pause(); setPlaying(false); }
       return;
     }
     if (videoEmbed && videoRef.current) {
       const el = videoRef.current;
-      if (el.muted) { el.muted = false; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
+      if (el.muted) { el.volume = el.volume || 0.5; el.muted = false; setMuted(false); setVolume(el.volume); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
       else if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
       else { el.pause(); setPlaying(false); }
       return;
@@ -215,6 +219,7 @@ function PublicProfile() {
     el.volume = v;
     el.muted = v === 0;
     setMuted(v === 0);
+    setVolume(v);
     if (v > 0 && el.paused) { el.play().catch(() => {}); setPlaying(true); }
   }
 
@@ -257,7 +262,7 @@ function PublicProfile() {
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
             )}
           </button>
-          <input type="range" min={0} max={1} step={0.05} defaultValue={muted ? 0 : 1}
+          <input type="range" min={0} max={1} step={0.05} value={muted ? 0 : volume}
             onChange={(e) => changeVolume(Number(e.target.value))}
             className="h-1 w-20 accent-current" style={{ color: accent }} />
         </div>
