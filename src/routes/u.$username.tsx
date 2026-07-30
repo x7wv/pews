@@ -185,6 +185,15 @@ function PublicProfile() {
     }
   }, [mp3Active, songEmbed?.src, videoEmbed]);
 
+  // Belt-and-suspenders: mp3 always wins. If mp3 audio is present, the background
+  // video's own audio track must never be audible, no matter what else changes.
+  useEffect(() => {
+    if (mp3Active && videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.volume = 0;
+    }
+  }, [mp3Active, playing, muted]);
+
   function enterSite() {
     setEntered(true);
     const el = mp3Active ? audioRef.current : videoEmbed ? videoRef.current : null;
