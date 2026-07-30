@@ -173,6 +173,7 @@ export type Database = {
           cursor_url: string | null
           discord_id: string | null
           display_name: string | null
+          font: string
           icon_color: string
           id: string
           monochrome_icons: boolean
@@ -198,6 +199,7 @@ export type Database = {
           cursor_url?: string | null
           discord_id?: string | null
           display_name?: string | null
+          font?: string
           icon_color?: string
           id: string
           monochrome_icons?: boolean
@@ -222,6 +224,7 @@ export type Database = {
           cursor_url?: string | null
           discord_id?: string | null
           display_name?: string | null
+          font?: string
           icon_color?: string
           id?: string
           monochrome_icons?: boolean
