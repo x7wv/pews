@@ -180,6 +180,8 @@ export type Database = {
           photo_url: string | null
           profile_blur: number
           profile_opacity: number
+          song_art_url: string | null
+          song_title: string | null
           song_url: string | null
           swap_box_colors: boolean
           text_color: string
@@ -206,6 +208,8 @@ export type Database = {
           photo_url?: string | null
           profile_blur?: number
           profile_opacity?: number
+          song_art_url?: string | null
+          song_title?: string | null
           song_url?: string | null
           swap_box_colors?: boolean
           text_color?: string
@@ -231,6 +235,8 @@ export type Database = {
           photo_url?: string | null
           profile_blur?: number
           profile_opacity?: number
+          song_art_url?: string | null
+          song_title?: string | null
           song_url?: string | null
           swap_box_colors?: boolean
           text_color?: string
