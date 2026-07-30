@@ -113,6 +113,8 @@ function PublicProfile() {
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [trackTitle, setTrackTitle] = useState<string | null>(null);
   const [playbackFailed, setPlaybackFailed] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [volume, setVolume] = useState(1);
   const bgRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -165,14 +167,15 @@ function PublicProfile() {
     const el = audioRef.current;
     if (!el || songEmbed?.type !== "audio") return;
     el.muted = true;
-    el.play().then(() => setPlaying(false)).catch(() => {});
+    el.volume = volume;
+    el.play().then(() => setPlaying(true)).catch(() => {});
   }, [songEmbed?.type, songEmbed?.src]);
 
   function toggleAudio() {
     if (songEmbed?.type === "audio" && audioRef.current && !playbackFailed) {
       const el = audioRef.current;
-      if (el.paused) { el.muted = false; el.play().catch(() => {}); setPlaying(true); }
-      else { el.muted = !el.muted; setPlaying(!el.muted); }
+      if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
+      else { el.pause(); setPlaying(false); }
     } else if (profile.song_url) {
       window.open(profile.song_url, "_blank", "noreferrer");
     }
@@ -198,31 +201,65 @@ function PublicProfile() {
       <Particles color={`${accent}66`} />
 
       {profile.song_url && (
-        <div className="fixed top-5 left-5 z-30 flex items-center gap-3 rounded-2xl border border-white/15 bg-black/40 px-3 py-2"
-          style={{ backdropFilter: `blur(${blurPx}px)` }}>
-          <button onClick={toggleAudio} aria-label="toggle audio"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-white/90 transition hover:bg-white/20">
-            {playing ? (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 ml-0.5"><path d="M8 5v14l11-7z"/></svg>
-            )}
-          </button>
-          <div className="min-w-0">
-            <div className="max-w-[160px] truncate text-xs font-medium text-white/90">
-              {trackTitle ?? (songEmbed?.type === "audio" ? "now playing" : "listen on the web")}
-            </div>
-            {songEmbed?.type === "audio" && duration > 0 && !playbackFailed ? (
-              <div className="mt-1 flex items-center gap-2">
-                <div onClick={seekAudio} className="h-1 w-24 cursor-pointer rounded-full bg-white/15">
-                  <div className="h-full rounded-full transition-[width]" style={{ width: `${Math.min(100, (progress / duration) * 100)}%`, background: accent }} />
-                </div>
-                <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(progress)} / {formatTime(duration)}</span>
+        <div className="fixed top-5 left-5 z-30 flex flex-col gap-2">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-black/50 p-2.5 pr-4"
+            style={{ backdropFilter: `blur(${blurPx}px)` }}>
+            <img
+              src={avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar)}
+              alt="" className="h-11 w-11 flex-shrink-0 rounded-lg object-cover" />
+            <div className="min-w-0">
+              <div className="max-w-[170px] truncate text-xs font-semibold text-white/90">
+                {trackTitle ?? (songEmbed?.type === "audio" ? "now playing" : "listen on the web")}
               </div>
-            ) : (
-              <div className="text-[10px] text-white/50">{playbackFailed ? "can't play inline — tap to open" : "tap to open"}</div>
-            )}
+              {songEmbed?.type === "audio" && duration > 0 && !playbackFailed ? (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(progress)}</span>
+                  <div onClick={seekAudio} className="h-1 w-20 cursor-pointer rounded-full bg-white/15">
+                    <div className="h-full rounded-full transition-[width]" style={{ width: `${Math.min(100, (progress / duration) * 100)}%`, background: accent }} />
+                  </div>
+                  <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(duration)}</span>
+                </div>
+              ) : (
+                <div className="mt-0.5 text-[10px] text-white/50">{playbackFailed ? "can't play inline — tap to open" : "tap to open"}</div>
+              )}
+              <div className="mt-1.5 flex items-center gap-3">
+                {songEmbed?.type === "audio" && !playbackFailed && (
+                  <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = 0; }} aria-label="restart"
+                    className="text-white/60 transition hover:text-white">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M6 6h2v12H6zM20 6v12l-9-6z"/></svg>
+                  </button>
+                )}
+                <button onClick={toggleAudio} aria-label="toggle audio" className="text-white/90 transition hover:text-white">
+                  {playing ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
+
+          {songEmbed?.type === "audio" && !playbackFailed && (
+            <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-2.5 py-1.5"
+              style={{ backdropFilter: `blur(${blurPx}px)` }}>
+              <button onClick={() => { if (audioRef.current) { audioRef.current.muted = !audioRef.current.muted; setMuted(audioRef.current.muted); } }}
+                aria-label="mute" className="flex-shrink-0 text-white/80 transition hover:text-white">
+                {muted ? (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.43.05-.65zM19 12c0 .94-.2 1.82-.54 2.63l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L18.73 21 20 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18z"/></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                )}
+              </button>
+              <input type="range" min={0} max={1} step={0.05} value={volume}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setVolume(v);
+                  if (audioRef.current) { audioRef.current.volume = v; audioRef.current.muted = v === 0; setMuted(v === 0); }
+                }}
+                className="h-1 w-20 accent-current" style={{ color: accent }} />
+            </div>
+          )}
         </div>
       )}
       {songEmbed?.type === "audio" && (
@@ -252,9 +289,16 @@ function PublicProfile() {
           </div>
         </div>
 
-        <h1 className="mt-4 animate-fade-up font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ animationDelay: "60ms", color: textColor }}>
-          {displayName}
-        </h1>
+        <div className="group relative mt-4 inline-block animate-fade-up" style={{ animationDelay: "60ms" }}>
+          <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor }}>
+            {displayName}
+          </h1>
+          {profile.uid != null && (
+            <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-black/80 px-2.5 py-1 text-[10px] font-mono text-white/70 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+              UID {profile.uid.toLocaleString()}
+            </div>
+          )}
+        </div>
 
         {profile.bio && (
           <p className="mt-2 animate-fade-up max-w-sm text-sm italic" style={{ animationDelay: "120ms", color: textColor, opacity: 0.65 }}>
