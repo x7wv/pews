@@ -7,6 +7,8 @@ import { Header } from "@/components/pews/Header";
 import { QRCodeCard } from "@/components/pews/QRCode";
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { FONT_OPTIONS } from "@/lib/fonts";
+import { SOCIAL_URL_PREFIX, stripPrefix, applyPrefix } from "@/lib/social-prefixes";
+import { BADGE_OPTIONS } from "@/lib/badges";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -25,6 +27,7 @@ type Profile = {
   avatar_url: string | null; background_url: string | null; accent_color: string;
   song_url: string | null; video_url: string | null; photo_url: string | null; discord_id: string | null;
   song_title: string | null; song_art_url: string | null;
+  badges: string[]; show_volume_control: boolean;
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   font: string;
@@ -44,7 +47,7 @@ const PLATFORMS = [
   "bitcoin", "ethereum", "litecoin", "monero", "wallet",
 ];
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
-const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "share"] as const;
+const TABS = ["profile", "appearance", "fonts", "badges", "links", "analytics", "themes", "domain", "share"] as const;
 type Tab = typeof TABS[number];
 
 const MAX_LINKS_PER_ACCOUNT = 1;
@@ -124,6 +127,7 @@ function Dashboard() {
       song_url: profile.song_url, video_url: profile.video_url, photo_url: profile.photo_url,
       discord_id: profile.discord_id,
       song_title: profile.song_title, song_art_url: profile.song_art_url,
+      badges: profile.badges, show_volume_control: profile.show_volume_control,
       background_color: profile.background_color, text_color: profile.text_color, icon_color: profile.icon_color,
       profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
@@ -391,6 +395,16 @@ function Dashboard() {
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.swap_box_colors ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium">volume control</div>
+                <div className="text-[11px] text-muted-foreground">show a volume slider on your page for your song or video audio</div>
+              </div>
+              <button onClick={() => setProfile({ ...profile, show_volume_control: !profile.show_volume_control })}
+                className={`relative h-6 w-11 rounded-full transition ${profile.show_volume_control ? "bg-primary" : "bg-background/60 border border-border"}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.show_volume_control ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
           </Card>
         )}
 
@@ -410,31 +424,70 @@ function Dashboard() {
           </Card>
         )}
 
+        {tab === "badges" && (
+          <Card title="badges">
+            <div className="text-[11px] text-muted-foreground">
+              toggle badges to show on your profile. these are self-selected for now — automatically awarding badges
+              (e.g. for boosting your Discord) requires a Discord bot running separately, which isn't set up yet.
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {BADGE_OPTIONS.map((b) => {
+                const active = profile.badges.includes(b.id);
+                return (
+                  <button key={b.id}
+                    onClick={() => setProfile({
+                      ...profile,
+                      badges: active ? profile.badges.filter((x) => x !== b.id) : [...profile.badges, b.id],
+                    })}
+                    className={`flex items-center gap-2 rounded-xl border p-3 text-left transition ${active ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}>
+                    <span className="text-lg">{b.emoji}</span>
+                    <span className="text-sm">{b.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
         {tab === "links" && (
           <>
             <Card title="socials" action={<button onClick={addSocial} className="btn-sm">+ add</button>}>
               {socials.length === 0 && <Empty>no socials yet.</Empty>}
-              {socials.map((s) => (
-                <div key={s.id} className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 rounded-xl border border-border bg-background/30 px-2">
-                    <span className="text-muted-foreground flex-shrink-0">{PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website}</span>
-                    <select
-                      value={s.platform}
-                      onChange={(e) => updateSocial(s.id, { platform: e.target.value })}
-                      className="w-32 bg-transparent py-2 text-sm outline-none appearance-none">
-                      {PLATFORMS.map((p) => (
-                        <option key={p} value={p} className="bg-background text-foreground">{p}</option>
-                      ))}
-                    </select>
+              {socials.map((s) => {
+                const prefix = SOCIAL_URL_PREFIX[s.platform];
+                return (
+                  <div key={s.id} className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-background/30 px-2">
+                      <span className="text-muted-foreground flex-shrink-0">{PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website}</span>
+                      <select
+                        value={s.platform}
+                        onChange={(e) => updateSocial(s.id, { platform: e.target.value })}
+                        className="w-32 bg-transparent py-2 text-sm outline-none appearance-none">
+                        {PLATFORMS.map((p) => (
+                          <option key={p} value={p} className="bg-background text-foreground">{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {prefix ? (
+                      <div className="input flex flex-1 items-center gap-0 p-0 pl-3">
+                        <span className="whitespace-nowrap text-xs text-muted-foreground">{prefix}</span>
+                        <input
+                          value={stripPrefix(s.platform, s.url)}
+                          onChange={(e) => updateSocial(s.id, { url: applyPrefix(s.platform, e.target.value) })}
+                          placeholder="yourname"
+                          className="w-full flex-1 bg-transparent py-2 pl-0.5 text-sm outline-none" />
+                      </div>
+                    ) : (
+                      <input
+                        value={s.url}
+                        onChange={(e) => updateSocial(s.id, { url: e.target.value })}
+                        placeholder={CRYPTO_PLATFORMS.has(s.platform) ? "wallet address" : "https://..."}
+                        className="input flex-1" />
+                    )}
+                    <button onClick={() => deleteSocial(s.id)} className="btn-sm-ghost">×</button>
                   </div>
-                  <input
-                    value={s.url}
-                    onChange={(e) => updateSocial(s.id, { url: e.target.value })}
-                    placeholder={CRYPTO_PLATFORMS.has(s.platform) ? "wallet address" : "https://..."}
-                    className="input flex-1" />
-                  <button onClick={() => deleteSocial(s.id)} className="btn-sm-ghost">×</button>
-                </div>
-              ))}
+                );
+              })}
             </Card>
             <Card title="links" action={
               <button onClick={addLink} disabled={links.length >= MAX_LINKS_PER_ACCOUNT}
