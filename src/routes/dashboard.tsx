@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/auth";
 import { toast } from "sonner";
@@ -284,14 +284,14 @@ function Dashboard() {
             <Field label="bio">
               <textarea value={profile.bio ?? ""} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={3} className="input resize-none" />
             </Field>
-            <Field label="avatar url">
-              <input value={profile.avatar_url ?? ""} onChange={(e) => setProfile({ ...profile, avatar_url: e.target.value })} className="input" placeholder="https://..." />
+            <Field label="avatar">
+              <ImageDropzone value={profile.avatar_url} onUploaded={(url) => setProfile({ ...profile, avatar_url: url })} preview="round" />
             </Field>
-            <Field label="background image url">
-              <input value={profile.background_url ?? ""} onChange={(e) => setProfile({ ...profile, background_url: e.target.value })} className="input" placeholder="https://..." />
+            <Field label="background image">
+              <ImageDropzone value={profile.background_url} onUploaded={(url) => setProfile({ ...profile, background_url: url })} preview="wide" />
             </Field>
-            <Field label="showcase photo url">
-              <input value={profile.photo_url ?? ""} onChange={(e) => setProfile({ ...profile, photo_url: e.target.value })} className="input" placeholder="https://..." />
+            <Field label="showcase photo">
+              <ImageDropzone value={profile.photo_url} onUploaded={(url) => setProfile({ ...profile, photo_url: url })} preview="wide" />
               <div className="mt-1 text-[11px] text-muted-foreground">an extra photo shown on your page, separate from your avatar</div>
             </Field>
             <Field label="song">
@@ -354,7 +354,7 @@ function Dashboard() {
               </Field>
             </div>
             <Field label="custom cursor">
-              <input value={profile.cursor_url ?? ""} onChange={(e) => setProfile({ ...profile, cursor_url: e.target.value })} className="input" placeholder="https://... (32x32 png/cur/svg recommended)" />
+              <ImageDropzone value={profile.cursor_url} onUploaded={(url) => setProfile({ ...profile, cursor_url: url })} preview="round" hint="32×32 png recommended" />
             </Field>
             <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
               <div>
@@ -628,6 +628,77 @@ function Card({ title, action, children }: { title: string; action?: React.React
     </div>
   );
 }
+function ImageDropzone({ value, onUploaded, preview, hint }: {
+  value: string | null;
+  onUploaded: (url: string) => void;
+  preview: "round" | "wide";
+  hint?: string;
+}) {
+  const { session } = useSession();
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function upload(file: File) {
+    if (!session) return toast.error("sign in required");
+    if (!file.type.startsWith("image/")) return toast.error("please drop an image file");
+    if (file.size > 8 * 1024 * 1024) return toast.error("image too large — 8MB max");
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${session.user.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("profile-media").upload(path, file, { upsert: true });
+    setUploading(false);
+    if (error) return toast.error(error.message);
+    const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
+    onUploaded(data.publicUrl);
+    toast.success("uploaded");
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) upload(file);
+  }
+
+  return (
+    <div>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`relative flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed p-3 transition ${dragging ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}
+      >
+        <input ref={inputRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
+        {value ? (
+          preview === "round" ? (
+            <img src={value} alt="" className="h-12 w-12 flex-shrink-0 rounded-full object-cover" />
+          ) : (
+            <img src={value} alt="" className="h-12 w-20 flex-shrink-0 rounded-lg object-cover" />
+          )
+        ) : (
+          <div className={`flex flex-shrink-0 items-center justify-center rounded-lg bg-background/50 text-muted-foreground ${preview === "round" ? "h-12 w-12 rounded-full" : "h-12 w-20"}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          </div>
+        )}
+        <div className="min-w-0 flex-1 text-xs text-muted-foreground">
+          {uploading ? "uploading…" : (
+            <>
+              <span className="text-foreground">drag & drop</span> or click to browse
+              {hint && <div className="mt-0.5 text-[10px]">{hint}</div>}
+            </>
+          )}
+        </div>
+        {value && !uploading && (
+          <button onClick={(e) => { e.stopPropagation(); onUploaded(""); }} className="btn-sm-ghost flex-shrink-0">×</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -676,9 +747,8 @@ function ThemeEditor({ draft, setDraft, themes, onSaveDraft, onPickPreset, onApp
             <input value={draft.particle} onChange={(e) => setDraft({ ...draft, particle: e.target.value })} className="input flex-1" placeholder="#rrggbbaa" />
           </div>
         </Field>
-        <Field label="background image url">
-          <input value={draft.background} onChange={(e) => setDraft({ ...draft, background: e.target.value })}
-            placeholder="https://..." className="input" />
+        <Field label="background image">
+          <ImageDropzone value={draft.background || null} onUploaded={(url) => setDraft({ ...draft, background: url })} preview="wide" />
         </Field>
 
         <div>
