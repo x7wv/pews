@@ -262,7 +262,7 @@ function PublicProfile() {
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
             )}
           </button>
-          <input type="range" min={0} max={1} step={0.05} value={muted ? 0 : volume}
+          <input type="range" min={0} max={1} step={0.05} value={volume}
             onChange={(e) => changeVolume(Number(e.target.value))}
             className="h-1 w-20 accent-current" style={{ color: accent }} />
         </div>
