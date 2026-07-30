@@ -41,6 +41,7 @@ export const Route = createFileRoute("/u/$username")({
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
+import { BADGE_OPTIONS } from "@/lib/badges";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
 
 function Particles({ color }: { color: string }) {
@@ -157,22 +158,34 @@ function PublicProfile() {
     ? { background: `${accent}26`, borderColor: `${accent}80` }
     : { background: "rgba(0,0,0,0.35)", borderColor: "rgba(255,255,255,0.1)" };
 
+  const mp3Active = songEmbed?.type === "audio";
+
   useEffect(() => {
-    if (videoEmbed || !profile.song_url) return;
+    if (!profile.song_url) return;
     let cancelled = false;
     fetchTrackTitle(profile.song_url).then((t) => { if (!cancelled) setTrackTitle(t); });
     return () => { cancelled = true; };
-  }, [profile.song_url, videoEmbed]);
+  }, [profile.song_url]);
 
   useEffect(() => {
-    if (videoEmbed) { setPlaying(true); return; }
-    const el = audioRef.current;
-    if (!el || songEmbed?.type !== "audio") return;
-    el.muted = true;
-    el.play().then(() => setPlaying(true)).catch(() => {});
-  }, [songEmbed?.type, songEmbed?.src, videoEmbed]);
+    if (mp3Active) {
+      const el = audioRef.current;
+      if (!el) return;
+      el.muted = true;
+      el.play().then(() => setPlaying(true)).catch(() => {});
+      return;
+    }
+    if (videoEmbed) setPlaying(true);
+  }, [mp3Active, songEmbed?.src, videoEmbed]);
 
   function toggleAudio() {
+    if (mp3Active && audioRef.current && !playbackFailed) {
+      const el = audioRef.current;
+      if (el.muted) { el.muted = false; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
+      else if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
+      else { el.pause(); setPlaying(false); }
+      return;
+    }
     if (videoEmbed && videoRef.current) {
       const el = videoRef.current;
       if (el.muted) { el.muted = false; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
@@ -180,22 +193,24 @@ function PublicProfile() {
       else { el.pause(); setPlaying(false); }
       return;
     }
-    if (songEmbed?.type === "audio" && audioRef.current && !playbackFailed) {
-      const el = audioRef.current;
-      if (el.muted) { el.muted = false; setMuted(false); if (el.paused) el.play().catch(() => {}); setPlaying(true); }
-      else if (el.paused) { el.play().catch(() => {}); setPlaying(true); }
-      else { el.pause(); setPlaying(false); }
-    } else if (profile.song_url) {
-      window.open(profile.song_url, "_blank", "noreferrer");
-    }
+    if (profile.song_url) window.open(profile.song_url, "_blank", "noreferrer");
   }
 
   function seekAudio(e: React.MouseEvent<HTMLDivElement>) {
-    const el = videoEmbed ? videoRef.current : audioRef.current;
+    const el = mp3Active ? audioRef.current : videoRef.current;
     if (!el || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
     el.currentTime = pct * duration;
+  }
+
+  function changeVolume(v: number) {
+    const el = mp3Active ? audioRef.current : videoRef.current;
+    if (!el) return;
+    el.volume = v;
+    el.muted = v === 0;
+    setMuted(v === 0);
+    if (v > 0 && el.paused) { el.play().catch(() => {}); setPlaying(true); }
   }
 
   return (
@@ -225,6 +240,22 @@ function PublicProfile() {
           onEnded={() => setPlaying(false)} className="hidden" />
       )}
 
+      {profile.show_volume_control && (mp3Active || videoEmbed) && !playbackFailed && (
+        <div className="fixed top-5 left-5 z-30 flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-2"
+          style={{ backdropFilter: `blur(${blurPx}px)` }}>
+          <button onClick={toggleAudio} aria-label="toggle volume" className="flex-shrink-0 text-white/90 transition hover:text-white">
+            {muted ? (
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.43.05-.65zM19 12c0 .94-.2 1.82-.54 2.63l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L18.73 21 20 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18z"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            )}
+          </button>
+          <input type="range" min={0} max={1} step={0.05} defaultValue={muted ? 0 : 1}
+            onChange={(e) => changeVolume(Number(e.target.value))}
+            className="h-1 w-20 accent-current" style={{ color: accent }} />
+        </div>
+      )}
+
       <div className="fixed bottom-5 left-5 z-30 flex items-center gap-1.5 text-xs text-white/50 font-mono">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
         {views.toLocaleString()}
@@ -243,6 +274,20 @@ function PublicProfile() {
             />
           </div>
         </div>
+
+        {profile.badges?.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 animate-fade-up" style={{ animationDelay: "40ms" }}>
+            {profile.badges.map((id: string) => {
+              const b = BADGE_OPTIONS.find((x) => x.id === id);
+              if (!b) return null;
+              return (
+                <span key={id} title={b.label} className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-sm">
+                  {b.emoji}
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         <div className="relative mt-4 inline-block animate-fade-up" style={{ animationDelay: "60ms" }}
           onMouseEnter={() => setNameHovered(true)} onMouseLeave={() => setNameHovered(false)}>
@@ -314,46 +359,8 @@ function PublicProfile() {
           </div>
         )}
 
-        {(videoEmbed || profile.song_url) && (
-          videoEmbed ? (
-            <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
-              style={{ backdropFilter: `blur(${blurPx}px)`, animationDelay: "420ms" }}>
-              <img
-                src={profile.song_art_url || (avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar))}
-                alt="" className="h-11 w-11 flex-shrink-0 rounded-lg object-cover" />
-              <div className="min-w-0 flex-1 text-left">
-                <div className="max-w-[200px] truncate text-xs font-semibold text-white/90">{profile.song_title || "background video"}</div>
-                {muted && playing ? (
-                  <div className="mt-0.5 text-[10px] text-white/50">tap to unmute</div>
-                ) : duration > 0 ? (
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(progress)}</span>
-                    <div onClick={seekAudio} className="h-1 w-28 cursor-pointer rounded-full bg-white/15">
-                      <div className="h-full rounded-full transition-[width]" style={{ width: `${Math.min(100, (progress / duration) * 100)}%`, background: accent }} />
-                    </div>
-                    <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(duration)}</span>
-                  </div>
-                ) : (
-                  <div className="mt-0.5 text-[10px] text-white/50">loading…</div>
-                )}
-              </div>
-              <div className="flex flex-shrink-0 items-center gap-3">
-                <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = 0; }} aria-label="restart"
-                  className="text-white/60 transition hover:text-white">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M6 6h2v12H6zM20 6v12l-9-6z"/></svg>
-                </button>
-                <button onClick={toggleAudio} aria-label="toggle audio" className="text-white/90 transition hover:text-white">
-                  {muted && playing ? (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.43.05-.65zM19 12c0 .94-.2 1.82-.54 2.63l1.51 1.51A8.9 8.9 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L18.73 21 20 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18z"/></svg>
-                  ) : playing ? (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
-                  )}
-                </button>
-              </div>
-            </div>
-          ) : songEmbed?.type === "iframe" ? (
+        {profile.song_url && songEmbed && (
+          songEmbed.type === "iframe" ? (
             <div className="mt-8 w-full max-w-xs overflow-hidden rounded-2xl border border-white/10 animate-fade-up"
               style={{ animationDelay: "420ms" }}>
               <iframe src={songEmbed.src} className="h-24 w-full" style={{ border: 0 }} loading="lazy"
