@@ -7,6 +7,7 @@ import { Header } from "@/components/pews/Header";
 import { QRCodeCard } from "@/components/pews/QRCode";
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { FONT_OPTIONS } from "@/lib/fonts";
+import { containsBlockedTerm } from "@/lib/moderation";
 import { SOCIAL_URL_PREFIX, stripPrefix, applyPrefix } from "@/lib/social-prefixes";
 
 export const Route = createFileRoute("/dashboard")({
@@ -29,11 +30,11 @@ type Profile = {
   show_volume_control: boolean;
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
-  font: string;
+  font: string; entry_message: string | null; entry_font: string;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
-type CustomLink = { id: string; title: string; url: string; position: number; click_count: number };
+type CustomLink = { id: string; title: string; url: string; position: number; click_count: number; image_url: string | null };
 type Theme = { id: string; name: string; accent_color: string; background_url: string | null; particle_color: string | null; is_active: boolean };
 type Domain = { id: string; domain: string; verification_token: string; status: string };
 type ClickRow = { link_id: string; created_at: string };
@@ -138,6 +139,7 @@ function Dashboard() {
   async function saveProfile() {
     if (!profile) return;
     if (usernameStatus === "taken") return toast.error("that username is already taken");
+    if (containsBlockedTerm(profile.username)) return toast.error("that username isn't allowed");
     setSaving(true);
     const { error } = await supabase.from("profiles").update({
       username: profile.username, display_name: profile.display_name, bio: profile.bio,
@@ -149,7 +151,7 @@ function Dashboard() {
       background_color: profile.background_color, text_color: profile.text_color, icon_color: profile.icon_color,
       profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
-      font: profile.font,
+      font: profile.font, entry_message: profile.entry_message, entry_font: profile.entry_font,
     }).eq("id", profile.id);
     setSaving(false);
     if (error) toast.error(error.message); else toast.success("saved!");
@@ -220,6 +222,12 @@ function Dashboard() {
     await supabase.from("profile_themes").update({ is_active: true }).eq("id", t.id);
     setThemes((prev) => prev.map((x) => ({ ...x, is_active: x.id === t.id })));
     toast.success(`applied "${t.name}"`);
+  }
+  async function clearTheme() {
+    if (!profile) return;
+    await supabase.from("profile_themes").update({ is_active: false }).eq("user_id", profile.id);
+    setThemes((prev) => prev.map((x) => ({ ...x, is_active: false })));
+    toast.success("no theme selected");
   }
   async function deleteTheme(id: string) {
     setThemes((prev) => prev.filter((t) => t.id !== id));
@@ -318,8 +326,9 @@ function Dashboard() {
                       setProfile({ ...profile, username: cleaned });
                     }} className="input" autoFocus />
                   {usernameCharError && <div className="mt-1 text-[11px] text-red-400">No special characters besides . , _ , -</div>}
-                  {!usernameCharError && usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
-                  {!usernameCharError && usernameStatus === "available" && profile.username.trim().toLowerCase() !== originalUsername && (
+                  {!usernameCharError && containsBlockedTerm(profile.username) && <div className="mt-1 text-[11px] text-red-400">that username isn't allowed</div>}
+                  {!usernameCharError && !containsBlockedTerm(profile.username) && usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
+                  {!usernameCharError && !containsBlockedTerm(profile.username) && usernameStatus === "available" && profile.username.trim().toLowerCase() !== originalUsername && (
                     <div className="mt-1 text-[11px] text-emerald-400">User available!</div>
                   )}
                 </div>
@@ -334,14 +343,6 @@ function Dashboard() {
             <Field label="showcase photo">
               <ImageDropzone value={profile.photo_url} onUploaded={(url) => setProfile({ ...profile, photo_url: url })} preview="wide" />
               <div className="mt-1 text-[11px] text-muted-foreground">an extra photo shown on your page, separate from your avatar</div>
-            </Field>
-            <Field label="song">
-              <input value={profile.song_url ?? ""} onChange={(e) => setProfile({ ...profile, song_url: e.target.value })} className="input" placeholder="spotify, soundcloud, apple music, or a direct .mp3 link" />
-              <div className="mt-1 text-[11px] text-muted-foreground">paste a spotify/soundcloud/apple music track link, or upload an mp3 in the appearance tab</div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <input value={profile.song_title ?? ""} onChange={(e) => setProfile({ ...profile, song_title: e.target.value })} className="input" placeholder="custom song title (optional)" />
-                <ImageDropzone value={profile.song_art_url} onUploaded={(url) => setProfile({ ...profile, song_art_url: url })} preview="round" hint="custom song artwork" />
-              </div>
             </Field>
             <Field label="discord presence">
               <input value={profile.discord_id ?? ""} onChange={(e) => setProfile({ ...profile, discord_id: e.target.value })} className="input" placeholder="your discord user id" />
@@ -387,8 +388,29 @@ function Dashboard() {
               </div>
             </div>
             <div className="text-[11px] text-muted-foreground">background supports .png, .webp, .gif, or .mp4 (autoplaying background video)</div>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={profile.song_url ?? ""} onChange={(e) => setProfile({ ...profile, song_url: e.target.value })} className="input" placeholder="or paste a spotify/soundcloud/apple music link" />
+              <input value={profile.song_title ?? ""} onChange={(e) => setProfile({ ...profile, song_title: e.target.value })} className="input" placeholder="custom song title (optional)" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground whitespace-nowrap">song artwork:</span>
+              <ImageDropzone value={profile.song_art_url} onUploaded={(url) => setProfile({ ...profile, song_art_url: url })} preview="round" hint="custom song artwork (optional)" />
+            </div>
           </Card>
           <Card title="appearance">
+            <Field label="entry screen message">
+              <input value={profile.entry_message ?? ""} onChange={(e) => setProfile({ ...profile, entry_message: e.target.value })}
+                className="input" placeholder={`enter ${profile.username}'s profile`} />
+              <div className="mt-1 text-[11px] text-muted-foreground">shown on the click-to-enter screen when your page has music or a video with audio</div>
+            </Field>
+            <Field label="entry screen font">
+              <select value={profile.entry_font} onChange={(e) => setProfile({ ...profile, entry_font: e.target.value })}
+                className="input appearance-none" style={{ fontFamily: profile.entry_font }}>
+                {FONT_OPTIONS.map((f) => (
+                  <option key={f} value={f} style={{ fontFamily: f }} className="bg-background text-foreground">{f}</option>
+                ))}
+              </select>
+            </Field>
             <Field label="profile opacity">
               <div className="flex items-center gap-3">
                 <input type="range" min={10} max={100} value={profile.profile_opacity}
@@ -425,32 +447,23 @@ function Dashboard() {
             <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
               <div>
                 <div className="text-sm font-medium">monochrome icons</div>
-                <div className="text-[11px] text-muted-foreground">force all social icons to your icon color instead of accent-tinted</div>
+                <div className="text-[11px] text-muted-foreground">force all social icons to your icon color instead of their brand colors</div>
               </div>
-              <button onClick={() => setProfile({ ...profile, monochrome_icons: !profile.monochrome_icons })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.monochrome_icons ? "bg-primary" : "bg-white/20"}`}>
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.monochrome_icons ? "translate-x-5" : "translate-x-0.5"}`} />
-              </button>
+              <Checkmark checked={profile.monochrome_icons} onToggle={() => setProfile({ ...profile, monochrome_icons: !profile.monochrome_icons })} />
             </div>
             <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
               <div>
                 <div className="text-sm font-medium">swap box colors</div>
                 <div className="text-[11px] text-muted-foreground">invert card backgrounds — use your accent as the fill instead of the border</div>
               </div>
-              <button onClick={() => setProfile({ ...profile, swap_box_colors: !profile.swap_box_colors })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.swap_box_colors ? "bg-primary" : "bg-white/20"}`}>
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.swap_box_colors ? "translate-x-5" : "translate-x-0.5"}`} />
-              </button>
+              <Checkmark checked={profile.swap_box_colors} onToggle={() => setProfile({ ...profile, swap_box_colors: !profile.swap_box_colors })} />
             </div>
             <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
               <div>
                 <div className="text-sm font-medium">volume control</div>
                 <div className="text-[11px] text-muted-foreground">show a volume slider on your page for your song or video audio</div>
               </div>
-              <button onClick={() => setProfile({ ...profile, show_volume_control: !profile.show_volume_control })}
-                className={`relative h-6 w-11 rounded-full transition ${profile.show_volume_control ? "bg-primary" : "bg-white/20"}`}>
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${profile.show_volume_control ? "translate-x-5" : "translate-x-0.5"}`} />
-              </button>
+              <Checkmark checked={profile.show_volume_control} onToggle={() => setProfile({ ...profile, show_volume_control: !profile.show_volume_control })} />
             </div>
           </Card>
           </>
@@ -532,6 +545,7 @@ function Dashboard() {
                     <button onClick={() => moveLink(l.id, 1)} disabled={i === links.length - 1} className="btn-sm-ghost disabled:opacity-30">↓</button>
                     <button onClick={() => deleteLink(l.id)} className="btn-sm-ghost">×</button>
                   </div>
+                  <ImageDropzone value={l.image_url} onUploaded={(url) => updateLink(l.id, { image_url: url })} preview="round" hint="custom link image (optional)" />
                   <UtmBuilder link={l} />
                 </div>
               ))}
@@ -556,6 +570,7 @@ function Dashboard() {
             onPickPreset={(p) => setDraftTheme({ name: p.name, accent: p.accent, background: draftTheme.background, particle: p.particle })}
             onApply={applyTheme}
             onDelete={deleteTheme}
+            onClearTheme={clearTheme}
           />
         )}
 
@@ -963,6 +978,17 @@ function ImageDropzone({ value, onUploaded, preview, hint, resizeTo }: {
   );
 }
 
+function Checkmark({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
+  return (
+    <button onClick={onToggle} aria-pressed={checked}
+      className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border transition ${checked ? "border-primary bg-primary" : "border-border bg-background/40"}`}>
+      {checked && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M20 6 9 17l-5-5"/></svg>
+      )}
+    </button>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -981,7 +1007,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 type DraftTheme = { name: string; accent: string; background: string; particle: string };
 
-function ThemeEditor({ draft, setDraft, themes, onSaveDraft, onPickPreset, onApply, onDelete }: {
+function ThemeEditor({ draft, setDraft, themes, onSaveDraft, onPickPreset, onApply, onDelete, onClearTheme }: {
   draft: DraftTheme;
   setDraft: (d: DraftTheme) => void;
   themes: Theme[];
@@ -989,6 +1015,7 @@ function ThemeEditor({ draft, setDraft, themes, onSaveDraft, onPickPreset, onApp
   onPickPreset: (p: { name: string; accent: string; particle: string }) => void;
   onApply: (t: Theme) => void;
   onDelete: (id: string) => void;
+  onClearTheme: () => void;
 }) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -1041,6 +1068,14 @@ function ThemeEditor({ draft, setDraft, themes, onSaveDraft, onPickPreset, onApp
         <Card title="saved variations">
           {themes.length === 0 && <Empty>no saved variations yet — tune the editor and save one above.</Empty>}
           <div className="space-y-2">
+            <div className={`flex items-center gap-3 rounded-xl border p-3 ${themes.every((t) => !t.is_active) ? "border-primary bg-primary/5" : "border-border bg-background/30"}`}>
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground">∅</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">no theme {themes.every((t) => !t.is_active) && <span className="text-primary text-[10px]">· active</span>}</div>
+                <div className="text-[10px] font-mono text-muted-foreground truncate">use your default accent color, no saved variation</div>
+              </div>
+              {!themes.every((t) => !t.is_active) && <button onClick={onClearTheme} className="btn-sm">apply</button>}
+            </div>
             {themes.map((t) => (
               <div key={t.id} className={`flex items-center gap-3 rounded-xl border p-3 ${t.is_active ? "border-primary bg-primary/5" : "border-border bg-background/30"}`}>
                 <div className="w-10 h-10 rounded-full flex-shrink-0" style={{ background: t.accent_color, boxShadow: `0 0 12px ${t.accent_color}` }} />
