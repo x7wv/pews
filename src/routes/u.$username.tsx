@@ -233,6 +233,26 @@ function PublicProfile() {
     if (v > 0 && el.paused) { el.play().catch(() => {}); setPlaying(true); }
   }
 
+  if (profile.is_banned) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-6 font-sans">
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#111] p-8 text-center">
+          <div className="mx-auto mb-4 flex h-10 items-end justify-center gap-0.5">
+            <div className="w-1 h-8 rounded-full bg-white" />
+          </div>
+          <h1 className="text-xl font-semibold text-white">
+            This user has been banned from <span className="text-primary">pews.lol</span>
+          </h1>
+          <div className="mt-2 text-sm text-white/40">Reason: {profile.ban_reason || "/"}</div>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <a href="/" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10">Go Home</a>
+            <a href="https://discord.gg/WrnpSzg7" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10">Contact Support</a>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
       {!entered && (mp3Active || videoEmbed) && (
