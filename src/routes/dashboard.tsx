@@ -74,6 +74,7 @@ function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [changingUsername, setChangingUsername] = useState(false);
+  const [usernameCharError, setUsernameCharError] = useState(false);
   const [originalUsername, setOriginalUsername] = useState("");
   const [draftTheme, setDraftTheme] = useState<{ name: string; accent: string; background: string; particle: string } | null>(null);
 
@@ -310,9 +311,15 @@ function Dashboard() {
               </div>
               {changingUsername && (
                 <div className="mt-2 rounded-xl border border-border bg-background/30 p-3">
-                  <input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="input" autoFocus />
-                  {usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
-                  {usernameStatus === "available" && profile.username.trim().toLowerCase() !== originalUsername && (
+                  <input value={profile.username} onChange={(e) => {
+                      const raw = e.target.value;
+                      const cleaned = raw.replace(/[^a-zA-Z0-9._,-]/g, "");
+                      setUsernameCharError(cleaned !== raw);
+                      setProfile({ ...profile, username: cleaned });
+                    }} className="input" autoFocus />
+                  {usernameCharError && <div className="mt-1 text-[11px] text-red-400">No special characters besides . , _ , -</div>}
+                  {!usernameCharError && usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
+                  {!usernameCharError && usernameStatus === "available" && profile.username.trim().toLowerCase() !== originalUsername && (
                     <div className="mt-1 text-[11px] text-emerald-400">User available!</div>
                   )}
                 </div>
