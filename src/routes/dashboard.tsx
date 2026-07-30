@@ -30,7 +30,7 @@ type Profile = {
   show_volume_control: boolean;
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
-  font: string; entry_message: string | null; entry_font: string;
+  font: string; entry_message: string | null; entry_font: string; no_glow: boolean;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -152,7 +152,7 @@ function Dashboard() {
       background_color: profile.background_color, text_color: profile.text_color, icon_color: profile.icon_color,
       profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
-      font: profile.font, entry_message: profile.entry_message, entry_font: profile.entry_font,
+      font: profile.font, entry_message: profile.entry_message, entry_font: profile.entry_font, no_glow: profile.no_glow,
     }).eq("id", profile.id);
     if (!silent) setSaving(false);
     if (error) { if (!silent) toast.error(error.message); }
@@ -226,8 +226,8 @@ function Dashboard() {
   }
   async function applyTheme(t: Theme) {
     if (!profile) return;
-    setProfile({ ...profile, accent_color: t.accent_color, background_url: t.background_url ?? profile.background_url });
-    await supabase.from("profiles").update({ accent_color: t.accent_color, background_url: t.background_url }).eq("id", profile.id);
+    setProfile({ ...profile, accent_color: t.accent_color, background_url: t.background_url ?? profile.background_url, no_glow: false });
+    await supabase.from("profiles").update({ accent_color: t.accent_color, background_url: t.background_url, no_glow: false }).eq("id", profile.id);
     await supabase.from("profile_themes").update({ is_active: false }).eq("user_id", profile.id);
     await supabase.from("profile_themes").update({ is_active: true }).eq("id", t.id);
     setThemes((prev) => prev.map((x) => ({ ...x, is_active: x.id === t.id })));
@@ -236,11 +236,11 @@ function Dashboard() {
   async function clearTheme() {
     if (!profile) return;
     const noColor = "#9ca3af";
-    setProfile({ ...profile, accent_color: noColor });
-    await supabase.from("profiles").update({ accent_color: noColor }).eq("id", profile.id);
+    setProfile({ ...profile, accent_color: noColor, no_glow: true });
+    await supabase.from("profiles").update({ accent_color: noColor, no_glow: true }).eq("id", profile.id);
     await supabase.from("profile_themes").update({ is_active: false }).eq("user_id", profile.id);
     setThemes((prev) => prev.map((x) => ({ ...x, is_active: false })));
-    toast.success("no theme — colors cleared");
+    toast.success("no theme — colors and glow cleared");
   }
   async function deleteTheme(id: string) {
     setThemes((prev) => prev.filter((t) => t.id !== id));
@@ -371,8 +371,8 @@ function Dashboard() {
             </Field>
             <Field label="accent color">
               <div className="flex items-center gap-2">
-                <input type="color" value={profile.accent_color} onChange={(e) => setProfile({ ...profile, accent_color: e.target.value })} className="h-9 w-14 rounded-lg border border-border bg-transparent" />
-                <input value={profile.accent_color} onChange={(e) => setProfile({ ...profile, accent_color: e.target.value })} className="input flex-1" />
+                <input type="color" value={profile.accent_color} onChange={(e) => setProfile({ ...profile, accent_color: e.target.value, no_glow: false })} className="h-9 w-14 rounded-lg border border-border bg-transparent" />
+                <input value={profile.accent_color} onChange={(e) => setProfile({ ...profile, accent_color: e.target.value, no_glow: false })} className="input flex-1" />
               </div>
             </Field>
           </Card>
@@ -406,8 +406,7 @@ function Dashboard() {
               </div>
             </div>
             <div className="text-[11px] text-muted-foreground">background supports .png, .webp, .gif, or .mp4 (autoplaying background video)</div>
-            <div className="grid grid-cols-2 gap-2">
-              <input value={profile.song_url ?? ""} onChange={(e) => setProfile({ ...profile, song_url: e.target.value })} className="input" placeholder="or paste a spotify/soundcloud/apple music link" />
+            <div>
               <input value={profile.song_title ?? ""} onChange={(e) => setProfile({ ...profile, song_title: e.target.value })} className="input" placeholder="custom song title (optional)" />
             </div>
             <div className="flex items-center gap-2">
@@ -783,7 +782,7 @@ function BackgroundDropzone({ backgroundUrl, videoUrl, onUploaded }: {
     if (!session) return toast.error("sign in required");
     const ext = (file.name.split(".").pop() || "").toLowerCase();
     if (!allowedExts.includes(ext)) return toast.error("only .png, .webp, .gif, or .mp4 files are supported");
-    if (file.size > 30 * 1024 * 1024) return toast.error("file too large — 30MB max");
+    if (file.size > 75 * 1024 * 1024) return toast.error("file too large — 75MB max");
     setUploading(true);
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
     const path = `${session.user.id}/${Date.now()}-${safeName}`;
@@ -854,7 +853,7 @@ function MediaDropzone({ value, onUploaded, accept, label }: {
     if (!session) return toast.error("sign in required");
     const ext = (file.name.split(".").pop() || "").toLowerCase();
     if (!allowedExts.includes(ext)) return toast.error(`only .${allowedExts.join(", .")} files are supported`);
-    if (file.size > 30 * 1024 * 1024) return toast.error("file too large — 30MB max");
+    if (file.size > 75 * 1024 * 1024) return toast.error("file too large — 75MB max");
     setUploading(true);
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
     const path = `${session.user.id}/${Date.now()}-${safeName}`;
@@ -934,7 +933,7 @@ function ImageDropzone({ value, onUploaded, preview, hint, resizeTo }: {
   async function upload(file: File) {
     if (!session) return toast.error("sign in required");
     if (!file.type.startsWith("image/")) return toast.error("please drop an image file");
-    if (file.size > 8 * 1024 * 1024) return toast.error("image too large — 8MB max");
+    if (file.size > 75 * 1024 * 1024) return toast.error("image too large — 75MB max");
     setUploading(true);
     let uploadBlob: Blob = file;
     let ext = file.name.split(".").pop() || "png";
