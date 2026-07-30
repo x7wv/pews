@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/auth";
 import { Header } from "@/components/pews/Header";
 
-const ADMIN_USERNAME = "x7wv";
+const ADMIN_USERNAMES = new Set(["x7wv", "knyfe"]);
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "admin — pews" }, { name: "robots", content: "noindex" }] }),
@@ -26,14 +26,16 @@ function AdminPanel() {
   const [rows, setRows] = useState<Row[]>([]);
   const [totals, setTotals] = useState({ users: 0, views: 0, clicks: 0, links: 0 });
   const [q, setQ] = useState("");
+  const [myUsername, setMyUsername] = useState("");
 
   useEffect(() => {
     if (loading) return;
     if (!session) { navigate({ to: "/auth" }); return; }
     (async () => {
       const { data } = await supabase.from("profiles").select("username").eq("id", session.user.id).maybeSingle();
-      const allowed = data?.username === ADMIN_USERNAME;
+      const allowed = !!data?.username && ADMIN_USERNAMES.has(data.username);
       setOk(allowed);
+      setMyUsername(data?.username ?? "");
       if (!allowed) return;
       const [{ data: profiles }, { data: clicks }, { data: links }] = await Promise.all([
         supabase.from("profiles").select("id, username, display_name, view_count, created_at").order("view_count", { ascending: false }),
@@ -60,7 +62,7 @@ function AdminPanel() {
         <div className="pt-32 text-center">
           <div className="text-6xl mb-4">🔒</div>
           <div className="font-display text-2xl font-bold">access denied</div>
-          <div className="mt-2 text-sm text-muted-foreground">this area is restricted to @{ADMIN_USERNAME}.</div>
+          <div className="mt-2 text-sm text-muted-foreground">this area is restricted to admins.</div>
           <Link to="/dashboard" className="mt-6 inline-block text-primary hover:underline text-sm">← back to dashboard</Link>
         </div>
       </main>
@@ -76,7 +78,7 @@ function AdminPanel() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs font-mono uppercase tracking-[0.4em] text-primary">owner panel</div>
-            <h1 className="mt-2 font-display text-3xl font-bold">admin · @{ADMIN_USERNAME}</h1>
+            <h1 className="mt-2 font-display text-3xl font-bold">admin · @{myUsername}</h1>
           </div>
           <div className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-mono text-primary">god mode</div>
         </div>
