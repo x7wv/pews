@@ -39,7 +39,7 @@ export const Route = createFileRoute("/u/$username")({
 });
 
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
-import { songEmbedUrl, videoEmbedUrl } from "@/lib/media-embed";
+import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
 
@@ -111,6 +111,8 @@ function PublicProfile() {
   const [duration, setDuration] = useState(0);
   const [bgFailed, setBgFailed] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [trackTitle, setTrackTitle] = useState<string | null>(null);
+  const [playbackFailed, setPlaybackFailed] = useState(false);
   const bgRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -153,6 +155,13 @@ function PublicProfile() {
     : { background: "rgba(0,0,0,0.35)", borderColor: "rgba(255,255,255,0.1)" };
 
   useEffect(() => {
+    if (!profile.song_url) return;
+    let cancelled = false;
+    fetchTrackTitle(profile.song_url).then((t) => { if (!cancelled) setTrackTitle(t); });
+    return () => { cancelled = true; };
+  }, [profile.song_url]);
+
+  useEffect(() => {
     const el = audioRef.current;
     if (!el || songEmbed?.type !== "audio") return;
     el.muted = true;
@@ -160,7 +169,7 @@ function PublicProfile() {
   }, [songEmbed?.type, songEmbed?.src]);
 
   function toggleAudio() {
-    if (songEmbed?.type === "audio" && audioRef.current) {
+    if (songEmbed?.type === "audio" && audioRef.current && !playbackFailed) {
       const el = audioRef.current;
       if (el.paused) { el.muted = false; el.play().catch(() => {}); setPlaying(true); }
       else { el.muted = !el.muted; setPlaying(!el.muted); }
@@ -178,8 +187,8 @@ function PublicProfile() {
   }
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden font-sans" style={{ background: profile.background_color || "#080808", color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
-      <div className="fixed inset-0 -z-20 overflow-hidden">
+    <main className="relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
+      <div className="fixed inset-0 -z-20 overflow-hidden" style={{ background: profile.background_color || "#080808" }}>
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
           <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity }} />
         </div>
@@ -189,27 +198,38 @@ function PublicProfile() {
       <Particles color={`${accent}66`} />
 
       {profile.song_url && (
-        <div className="fixed top-5 left-5 z-30 flex flex-col items-start gap-2">
+        <div className="fixed top-5 left-5 z-30 flex items-center gap-3 rounded-2xl border border-white/15 bg-black/40 px-3 py-2"
+          style={{ backdropFilter: `blur(${blurPx}px)` }}>
           <button onClick={toggleAudio} aria-label="toggle audio"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition hover:border-white/30 hover:text-white"
-            style={{ backdropFilter: `blur(${blurPx}px)` }}>
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-white/90 transition hover:bg-white/20">
             {playing ? (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
             ) : (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M8 5v14l11-7z"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 ml-0.5"><path d="M8 5v14l11-7z"/></svg>
             )}
           </button>
-          {songEmbed?.type === "audio" && duration > 0 && (
-            <div onClick={seekAudio} className="h-1 w-24 cursor-pointer rounded-full bg-white/15" style={{ backdropFilter: `blur(${blurPx}px)` }}>
-              <div className="h-full rounded-full transition-[width]" style={{ width: `${Math.min(100, (progress / duration) * 100)}%`, background: accent }} />
+          <div className="min-w-0">
+            <div className="max-w-[160px] truncate text-xs font-medium text-white/90">
+              {trackTitle ?? (songEmbed?.type === "audio" ? "now playing" : "listen on the web")}
             </div>
-          )}
+            {songEmbed?.type === "audio" && duration > 0 && !playbackFailed ? (
+              <div className="mt-1 flex items-center gap-2">
+                <div onClick={seekAudio} className="h-1 w-24 cursor-pointer rounded-full bg-white/15">
+                  <div className="h-full rounded-full transition-[width]" style={{ width: `${Math.min(100, (progress / duration) * 100)}%`, background: accent }} />
+                </div>
+                <span className="whitespace-nowrap text-[10px] font-mono text-white/50">{formatTime(progress)} / {formatTime(duration)}</span>
+              </div>
+            ) : (
+              <div className="text-[10px] text-white/50">{playbackFailed ? "can't play inline — tap to open" : "tap to open"}</div>
+            )}
+          </div>
         </div>
       )}
       {songEmbed?.type === "audio" && (
         <audio ref={audioRef} src={songEmbed.src} loop
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+          onError={() => setPlaybackFailed(true)}
           onEnded={() => setPlaying(false)} className="hidden" />
       )}
 
