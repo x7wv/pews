@@ -150,7 +150,7 @@ function Dashboard() {
     if (containsBlockedTerm(profile.username)) return silent ? undefined : toast.error("that username isn't allowed");
     if (!silent) setSaving(true);
     const { error } = await supabase.from("profiles").update({
-      username: profile.username, display_name: profile.display_name, bio: profile.bio,
+      username: profile.username.toLowerCase(), display_name: profile.display_name, bio: profile.bio,
       avatar_url: profile.avatar_url, background_url: profile.background_url, accent_color: profile.accent_color,
       song_url: profile.song_url, video_url: profile.video_url, photo_url: profile.photo_url,
       discord_id: profile.discord_id,
@@ -355,11 +355,11 @@ function Dashboard() {
                 <div className="mt-2 rounded-xl border border-border bg-background/30 p-3">
                   <input value={profile.username} onChange={(e) => {
                       const raw = e.target.value;
-                      const cleaned = raw.replace(/[^a-zA-Z0-9._,-]/g, "");
+                      const cleaned = raw.replace(/[^a-zA-Z0-9]/g, "");
                       setUsernameCharError(cleaned !== raw);
                       setProfile({ ...profile, username: cleaned });
                     }} className="input" autoFocus />
-                  {usernameCharError && <div className="mt-1 text-[11px] text-red-400">No special characters besides . , _ , -</div>}
+                  {usernameCharError && <div className="mt-1 text-[11px] text-red-400">Please use normal letters and numbers</div>}
                   {!usernameCharError && containsBlockedTerm(profile.username) && <div className="mt-1 text-[11px] text-red-400">that username isn't allowed</div>}
                   {!usernameCharError && !containsBlockedTerm(profile.username) && usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
                   {!usernameCharError && !containsBlockedTerm(profile.username) && usernameStatus === "available" && profile.username.trim().toLowerCase() !== originalUsername && (
