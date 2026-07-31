@@ -30,6 +30,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState(u ?? "");
+  const [usernameCharError, setUsernameCharError] = useState(false);
   const [busy, setBusy] = useState(false);
   const { session } = useSession();
   const navigate = useNavigate();
@@ -44,8 +45,8 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         const cleanUser = username.trim();
-        if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanUser)) {
-          toast.error("username must be 3–20 chars (letters, numbers, underscores)");
+        if (!/^[a-zA-Z0-9]{3,20}$/.test(cleanUser)) {
+          toast.error("Please use normal letters and numbers");
           return;
         }
         const { data, error } = await supabase.auth.signUp({
@@ -130,12 +131,18 @@ function AuthPage() {
                   <span className="pl-3 text-xs font-mono text-muted-foreground">pews.lol/u/</span>
                   <input
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const cleaned = raw.replace(/[^a-zA-Z0-9]/g, "");
+                      setUsernameCharError(cleaned !== raw);
+                      setUsername(cleaned);
+                    }}
                     required
                     className="flex-1 bg-transparent px-2 py-2 text-sm outline-none"
                     placeholder="yourname"
                   />
                 </div>
+                {usernameCharError && <div className="mt-1 text-[11px] text-red-400">Please use normal letters and numbers</div>}
               </div>
             )}
             <div>
