@@ -11,6 +11,7 @@ export const Route = createFileRoute("/u/$username")({
       .from("profiles")
       .select("*")
       .ilike("username", params.username)
+      .limit(1)
       .maybeSingle();
     if (error) throw error;
     if (!profile) throw notFound();
