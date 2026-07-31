@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Header } from "@/components/pews/Header";
 import { QRCodeCard } from "@/components/pews/QRCode";
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
+import { PLATFORM_BRAND_COLORS } from "@/lib/platform-colors";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import { containsBlockedTerm } from "@/lib/moderation";
 import { SOCIAL_URL_PREFIX, stripPrefix, applyPrefix } from "@/lib/social-prefixes";
@@ -27,7 +28,7 @@ type Profile = {
   avatar_url: string | null; background_url: string | null; accent_color: string;
   song_url: string | null; video_url: string | null; photo_url: string | null; discord_id: string | null;
   song_title: string | null; song_art_url: string | null;
-  show_volume_control: boolean;
+  show_volume_control: boolean; show_song_bar: boolean;
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   font: string; entry_message: string | null; entry_font: string; no_glow: boolean; audio_source: string;
@@ -40,12 +41,13 @@ type Domain = { id: string; domain: string; verification_token: string; status: 
 type ClickRow = { link_id: string; created_at: string };
 
 const PLATFORMS = [
-  "discord", "twitter", "instagram", "github", "spotify", "youtube", "tiktok", "twitch", "website",
+  "discord", "discorduser", "twitter", "instagram", "github", "spotify", "youtube", "tiktok", "twitch",
   "facebook", "linkedin", "telegram", "reddit", "snapchat", "threads", "bluesky",
   "soundcloud", "paypal", "cashapp", "venmo", "playstation", "xbox", "applemusic", "kofi",
-  "vk", "pinterest", "lastfm", "patreon", "gitlab", "email",
+  "vk", "pinterest", "lastfm", "patreon", "gitlab", "email", "onlyfans", "fansly",
   "bitcoin", "ethereum", "litecoin", "monero", "wallet",
 ];
+const COPY_PLATFORMS = new Set(["discorduser"]);
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
 const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "share"] as const;
 type Tab = typeof TABS[number];
@@ -155,7 +157,7 @@ function Dashboard() {
       song_url: profile.song_url, video_url: profile.video_url, photo_url: profile.photo_url,
       discord_id: profile.discord_id,
       song_title: profile.song_title, song_art_url: profile.song_art_url,
-      show_volume_control: profile.show_volume_control,
+      show_volume_control: profile.show_volume_control, show_song_bar: profile.show_song_bar,
       background_color: profile.background_color, text_color: profile.text_color, icon_color: profile.icon_color,
       profile_opacity: profile.profile_opacity, profile_blur: profile.profile_blur,
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
@@ -175,10 +177,10 @@ function Dashboard() {
     return () => clearTimeout(t);
   }, [profile]);
 
-  async function addSocial() {
+  async function addSocial(platform: string = "twitter") {
     if (!session) return;
     const { data, error } = await supabase.from("social_links").insert({
-      user_id: session.user.id, platform: "twitter", url: "", position: socials.length,
+      user_id: session.user.id, platform, url: "", position: socials.length,
     }).select().single();
     if (error) return toast.error(error.message);
     setSocials([...socials, data as SocialLink]);
@@ -299,7 +301,7 @@ function Dashboard() {
   const profileUrl = `${typeof window !== "undefined" ? window.location.origin : "https://pews.lol"}/u/${profile.username}`;
 
   return (
-    <main className="relative min-h-screen font-sans pb-20">
+    <main className="relative min-h-screen overflow-x-hidden font-sans pb-20">
       <div className="pointer-events-none fixed inset-0 -z-10 grid-overlay opacity-60" />
       <div className="pointer-events-none fixed inset-0 -z-10" style={{ background: "radial-gradient(ellipse 800px 500px at 50% -10%, oklch(0.62 0.19 250 / 12%), transparent 70%)" }} />
       <Header />
@@ -455,7 +457,7 @@ function Dashboard() {
               <select value={profile.entry_font} onChange={(e) => setProfile({ ...profile, entry_font: e.target.value })}
                 className="input appearance-none" style={{ fontFamily: profile.entry_font }}>
                 {FONT_OPTIONS.map((f) => (
-                  <option key={f} value={f} style={{ fontFamily: f }} className="bg-background text-foreground">{f}</option>
+                  <option key={f.family} value={f.family} style={{ fontFamily: f.family }} className="bg-background text-foreground">{f.label}</option>
                 ))}
               </select>
             </Field>
@@ -513,6 +515,13 @@ function Dashboard() {
               </div>
               <Checkmark checked={profile.show_volume_control} onToggle={() => setProfile({ ...profile, show_volume_control: !profile.show_volume_control })} />
             </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium">song name bar</div>
+                <div className="text-[11px] text-muted-foreground">show the little "now playing" bar with your song's name and artwork</div>
+              </div>
+              <Checkmark checked={profile.show_song_bar} onToggle={() => setProfile({ ...profile, show_song_bar: !profile.show_song_bar })} />
+            </div>
           </Card>
           </>
         )}
@@ -522,11 +531,11 @@ function Dashboard() {
             <div className="text-[11px] text-muted-foreground">choose the font used for your display name and bio on your public page</div>
             <div className="grid grid-cols-2 gap-2">
               {FONT_OPTIONS.map((f) => (
-                <button key={f} onClick={() => setProfile({ ...profile, font: f })}
-                  className={`rounded-xl border p-4 text-left transition ${profile.font === f ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}
-                  style={{ fontFamily: f }}>
+                <button key={f.family} onClick={() => setProfile({ ...profile, font: f.family })}
+                  className={`rounded-xl border p-4 text-left transition ${profile.font === f.family ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}
+                  style={{ fontFamily: f.family }}>
                   <div className="text-lg font-semibold">{profile.display_name || profile.username}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: f }}>{f}</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground" style={{ fontFamily: f.family }}>{f.label}</div>
                 </button>
               ))}
             </div>
@@ -535,7 +544,20 @@ function Dashboard() {
 
         {tab === "links" && (
           <>
-            <Card title="socials" action={<button onClick={addSocial} className="btn-sm">+ add</button>}>
+            <Card title="socials">
+              <div>
+                <div className="mb-1 text-sm font-semibold">Link your social media profiles.</div>
+                <div className="mb-3 text-[11px] text-muted-foreground">tap an icon to add it to your profile.</div>
+                <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-10">
+                  {PLATFORMS.map((p) => (
+                    <button key={p} onClick={() => addSocial(p)} title={p}
+                      className="flex aspect-square items-center justify-center rounded-full bg-white/5 transition hover:scale-110 hover:bg-white/10"
+                      style={{ color: PLATFORM_BRAND_COLORS[p] ?? "currentColor" }}>
+                      {PLATFORM_ICONS[p] ?? PLATFORM_ICONS.website}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {socials.length === 0 && <Empty>no socials yet.</Empty>}
               {socials.map((s) => {
                 const prefix = SOCIAL_URL_PREFIX[s.platform];
@@ -565,7 +587,7 @@ function Dashboard() {
                       <input
                         value={s.url}
                         onChange={(e) => updateSocial(s.id, { url: e.target.value })}
-                        placeholder={CRYPTO_PLATFORMS.has(s.platform) ? "wallet address" : "https://..."}
+                        placeholder={CRYPTO_PLATFORMS.has(s.platform) ? "wallet address" : s.platform === "discorduser" ? "your discord username" : "https://..."}
                         className="input flex-1" />
                     )}
                     <button onClick={() => deleteSocial(s.id)} className="btn-sm-ghost">×</button>
