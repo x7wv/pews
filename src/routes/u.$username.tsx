@@ -289,11 +289,11 @@ function PublicProfile() {
         <div ref={bgRef} className="h-full w-full transition-transform duration-300 ease-out will-change-transform">
           {videoEmbed ? (
             <video ref={videoRef} src={videoEmbed.src} autoPlay loop muted playsInline
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+              onTimeUpdate={mp3Active ? undefined : handleTimeUpdate}
+              onLoadedMetadata={mp3Active ? undefined : (e) => setDuration(e.currentTarget.duration)}
               className="h-full w-full object-cover" />
           ) : hasCustomBg ? (
-            <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity, filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined, transform: blurPx > 0 ? "scale(1.1)" : undefined }} />
+            <img src={bgFailed ? defaultBg : bgImage} onError={() => setBgFailed(true)} alt="" className="h-full w-full object-cover" style={{ opacity, filter: `saturate(1.1) contrast(1.05)${blurPx > 0 ? ` blur(${blurPx}px)` : ""}`, transform: blurPx > 0 ? "scale(1.1)" : undefined }} />
           ) : null}
         </div>
         {!videoEmbed && !hasCustomBg && (
