@@ -276,7 +276,10 @@ function PublicProfile() {
   }
 
   return (
-    <main className="relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}) 16 16, auto` : undefined }}>
+    <main className="pews-profile relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor }}>
+      {profile.cursor_url && (
+        <style dangerouslySetInnerHTML={{ __html: `.pews-profile, .pews-profile * { cursor: url(${JSON.stringify(profile.cursor_url).slice(1, -1)}) 16 16, auto !important; }` }} />
+      )}
       {!entered && (mp3Active || videoEmbed) && (
         <button onClick={enterSite}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm text-center">
