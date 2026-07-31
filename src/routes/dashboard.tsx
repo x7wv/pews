@@ -809,15 +809,48 @@ function BackgroundDropzone({ backgroundUrl, videoUrl, onUploaded }: {
   const inputRef = useRef<HTMLInputElement>(null);
   const allowedExts = ["png", "webp", "gif", "mp4"];
 
+  function compressBgImage(file: File, maxDim = 1920, quality = 0.85): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(url); return reject(new Error("canvas unsupported")); }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (blob) resolve(blob); else reject(new Error("compress failed"));
+        }, "image/jpeg", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("invalid image")); };
+      img.src = url;
+    });
+  }
+
   async function upload(file: File) {
     if (!session) return toast.error("sign in required");
     const ext = (file.name.split(".").pop() || "").toLowerCase();
     if (!allowedExts.includes(ext)) return toast.error("only .png, .webp, .gif, or .mp4 files are supported");
     if (file.size > 75 * 1024 * 1024) return toast.error("file too large — 75MB max");
     setUploading(true);
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const path = `${session.user.id}/${Date.now()}-${safeName}`;
-    const { error } = await supabase.storage.from("profile-media").upload(path, file, { upsert: true });
+    let uploadBlob: Blob = file;
+    let finalExt = ext;
+    if (ext === "png" || ext === "webp") {
+      try { uploadBlob = await compressBgImage(file); finalExt = "jpg"; }
+      catch { uploadBlob = file; }
+    }
+    const safeName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    const path = `${session.user.id}/${Date.now()}-${safeName}.${finalExt}`;
+    const { error } = await supabase.storage.from("profile-media").upload(path, uploadBlob, { upsert: true });
     setUploading(false);
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
@@ -961,6 +994,33 @@ function ImageDropzone({ value, onUploaded, preview, hint, resizeTo }: {
     });
   }
 
+  function compressImage(file: File, maxDim = 1920, quality = 0.85): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(url); return reject(new Error("canvas unsupported")); }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (blob) resolve(blob); else reject(new Error("compress failed"));
+        }, "image/jpeg", quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("invalid image")); };
+      img.src = url;
+    });
+  }
+
   async function upload(file: File) {
     if (!session) return toast.error("sign in required");
     if (!file.type.startsWith("image/")) return toast.error("please drop an image file");
@@ -971,6 +1031,10 @@ function ImageDropzone({ value, onUploaded, preview, hint, resizeTo }: {
     if (resizeTo) {
       try { uploadBlob = await resizeImage(file, resizeTo); ext = "png"; }
       catch { setUploading(false); return toast.error("couldn't process that image"); }
+    } else if (file.type !== "image/gif") {
+      // skip gifs (would lose animation) — compress everything else for faster uploads and cleaner rendering
+      try { uploadBlob = await compressImage(file); ext = "jpg"; }
+      catch { uploadBlob = file; }
     }
     const path = `${session.user.id}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("profile-media").upload(path, uploadBlob, { upsert: true });
