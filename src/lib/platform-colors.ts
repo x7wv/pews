@@ -31,4 +31,7 @@ export const PLATFORM_BRAND_COLORS: Record<string, string> = {
   ethereum: "#627EEA",
   litecoin: "#345D9D",
   monero: "#FF6600",
+  onlyfans: "#00AFF0",
+  fansly: "#7B2FF7",
+  discorduser: "#5865F2",
 };
