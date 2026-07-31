@@ -42,7 +42,7 @@ import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { PLATFORM_BRAND_COLORS } from "@/lib/platform-colors";
 import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
-const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
+const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet", "discorduser"]);
 
 function Particles({ color }: { color: string }) {
   const items = useMemo(() =>
@@ -155,7 +155,7 @@ function PublicProfile() {
     await supabase.rpc("bump_link_click", { link_id: id });
   }
 
-  const accent = profile.accent_color || "#3b82f6";
+  const accent = profile.no_glow ? "#9ca3af" : (profile.accent_color || "#3b82f6");
   const bgImage = profile.photo_url || profile.background_url || defaultBg;
   const hasCustomBg = !!(profile.photo_url || profile.background_url);
   const displayName = profile.display_name || profile.username;
@@ -378,10 +378,12 @@ function PublicProfile() {
             {socials.map((s: { id: string; platform: string; url: string }) => {
               const isCrypto = CRYPTO_PLATFORMS.has(s.platform);
               const shared = "transition-all duration-200 hover:-translate-y-0.5 hover:scale-110";
-              const baseColor = profile.monochrome_icons
+              const baseColor = profile.no_glow
+                ? `${textColor}99`
+                : profile.monochrome_icons
                 ? (iconColor ?? `${textColor}99`)
                 : (PLATFORM_BRAND_COLORS[s.platform] ?? `${textColor}99`);
-              const handlers = profile.monochrome_icons ? {
+              const handlers = profile.no_glow ? {} : profile.monochrome_icons ? {
                 onMouseEnter: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = accent; if (!profile.no_glow) e.currentTarget.style.filter = `drop-shadow(0 0 6px ${accent}) drop-shadow(0 0 16px ${accent}b3)`; },
                 onMouseLeave: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = baseColor; e.currentTarget.style.filter = ""; },
               } : {};
@@ -424,7 +426,7 @@ function PublicProfile() {
           </div>
         )}
 
-        {mp3Active && (
+        {mp3Active && profile.show_song_bar && (
           <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-2.5 pr-4 animate-fade-up"
               style={{ backdropFilter: `blur(${blurPx}px)`, animationDelay: "420ms" }}>
               <img
