@@ -23,6 +23,9 @@ export const SOCIAL_URL_PREFIX: Record<string, string> = {
   github: "https://github.com/",
   kofi: "https://ko-fi.com/",
   spotify: "https://open.spotify.com/user/",
+  xbox: "https://account.xbox.com/en-us/profile?gamertag=",
+  playstation: "https://psnprofiles.com/",
+  applemusic: "https://music.apple.com/profile/",
 };
 
 /** Platforms intentionally left out: discord (invite links vary), website (arbitrary url),
