@@ -10,7 +10,7 @@ export const Route = createFileRoute("/u/$username")({
     const { data: profile, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("username", params.username)
+      .ilike("username", params.username)
       .maybeSingle();
     if (error) throw error;
     if (!profile) throw notFound();
@@ -159,8 +159,8 @@ function PublicProfile() {
   const bgImage = profile.photo_url || profile.background_url || defaultBg;
   const hasCustomBg = !!(profile.photo_url || profile.background_url);
   const displayName = profile.display_name || profile.username;
-  const songEmbed = profile.song_url ? songEmbedUrl(profile.song_url) : null;
-  const videoEmbed = profile.video_url ? videoEmbedUrl(profile.video_url) : null;
+  const songEmbed = useMemo(() => (profile.song_url ? songEmbedUrl(profile.song_url) : null), [profile.song_url]);
+  const videoEmbed = useMemo(() => (profile.video_url ? videoEmbedUrl(profile.video_url) : null), [profile.video_url]);
   const textColor = profile.text_color || "#ffffff";
   const iconColor = profile.monochrome_icons ? (profile.icon_color || "#ffffff") : undefined;
   const opacity = (profile.profile_opacity ?? 60) / 100;
@@ -276,7 +276,7 @@ function PublicProfile() {
   }
 
   return (
-    <main className="relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}), auto` : undefined }}>
+    <main className="relative isolate min-h-screen w-full overflow-hidden font-sans" style={{ color: textColor, cursor: profile.cursor_url ? `url(${profile.cursor_url}) 16 16, auto` : undefined }}>
       {!entered && (mp3Active || videoEmbed) && (
         <button onClick={enterSite}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm text-center">
