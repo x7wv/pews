@@ -31,6 +31,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState(u ?? "");
   const [usernameCharError, setUsernameCharError] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [busy, setBusy] = useState(false);
   const { session } = useSession();
   const navigate = useNavigate();
@@ -38,6 +39,18 @@ function AuthPage() {
   useEffect(() => {
     if (session) navigate({ to: "/dashboard" });
   }, [session, navigate]);
+
+  useEffect(() => {
+    if (mode !== "signup") return;
+    const uname = username.trim().toLowerCase();
+    if (!uname || uname.length < 3) { setUsernameStatus("idle"); return; }
+    setUsernameStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").ilike("username", uname).maybeSingle();
+      setUsernameStatus(data ? "taken" : "available");
+    }, 400);
+    return () => clearTimeout(t);
+  }, [username, mode]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +60,10 @@ function AuthPage() {
         const cleanUser = username.trim();
         if (!/^[a-zA-Z0-9]{3,20}$/.test(cleanUser)) {
           toast.error("Please use normal letters and numbers");
+          return;
+        }
+        if (usernameStatus === "taken") {
+          toast.error("that username is already taken");
           return;
         }
         const { data, error } = await supabase.auth.signUp({
@@ -143,6 +160,8 @@ function AuthPage() {
                   />
                 </div>
                 {usernameCharError && <div className="mt-1 text-[11px] text-red-400">Please use normal letters and numbers</div>}
+                {!usernameCharError && usernameStatus === "taken" && <div className="mt-1 text-[11px] text-red-400">Name not available</div>}
+                {!usernameCharError && usernameStatus === "available" && <div className="mt-1 text-[11px] text-emerald-400">User available!</div>}
               </div>
             )}
             <div>
