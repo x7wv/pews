@@ -11,4 +11,6 @@ export const FONT_OPTIONS: FontOption[] = [
   { label: "Outfit", family: "Outfit" },
   { label: "DM Serif Display", family: "DM Serif Display" },
   { label: "Chakra Petch", family: "Chakra Petch" },
+  { label: "Minecraft Mini Bold", family: "Silkscreen" },
+  { label: "Minecraft", family: "Pixelify Sans" },
 ];
