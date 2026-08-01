@@ -7,7 +7,7 @@ import { Header } from "@/components/pews/Header";
 import { QRCodeCard } from "@/components/pews/QRCode";
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { PLATFORM_BRAND_COLORS } from "@/lib/platform-colors";
-import { PLATFORM_IMAGES } from "@/lib/platform-images";
+import { PLATFORM_IMAGES } from "@/lib/social-images";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import { containsBlockedTerm } from "@/lib/moderation";
 import { SOCIAL_URL_PREFIX, stripPrefix, applyPrefix } from "@/lib/social-prefixes";
