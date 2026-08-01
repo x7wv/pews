@@ -41,6 +41,7 @@ export const Route = createFileRoute("/u/$username")({
 
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { PLATFORM_BRAND_COLORS } from "@/lib/platform-colors";
+import { PLATFORM_IMAGES } from "@/lib/platform-images";
 import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet", "discorduser"]);
@@ -391,20 +392,21 @@ function PublicProfile() {
                 onMouseEnter: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = accent; if (!profile.no_glow) e.currentTarget.style.filter = `drop-shadow(0 0 6px ${accent}) drop-shadow(0 0 16px ${accent}b3)`; },
                 onMouseLeave: (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = baseColor; e.currentTarget.style.filter = ""; },
               } : {};
+              const img = PLATFORM_IMAGES[s.platform];
               if (isCrypto) {
                 return (
                   <button key={s.id} type="button" aria-label={`copy ${s.platform} address`}
                     title={copiedId === s.id ? "copied!" : `copy ${s.platform} address`}
                     onClick={() => { navigator.clipboard.writeText(s.url); setCopiedId(s.id); setTimeout(() => setCopiedId((c) => (c === s.id ? null : c)), 1500); }}
-                    className={shared} style={{ color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...handlers}>
-                    {copiedId === s.id ? <span className="text-xs font-mono">✓</span> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
+                    className={`${shared} overflow-hidden rounded-full`} style={img ? {} : { color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...(img ? {} : handlers)}>
+                    {copiedId === s.id ? <span className="text-xs font-mono">✓</span> : img ? <img src={img} alt={s.platform} className="h-full w-full object-cover" /> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
                   </button>
                 );
               }
               return (
                 <a key={s.id} href={s.url} target="_blank" rel="noreferrer noopener" aria-label={s.platform}
-                  className={shared} style={{ color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...handlers}>
-                  {PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website}
+                  className={`${shared} overflow-hidden rounded-full`} style={img ? {} : { color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...(img ? {} : handlers)}>
+                  {img ? <img src={img} alt={s.platform} className="h-full w-full object-cover" /> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
                 </a>
               );
             })}
