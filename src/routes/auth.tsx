@@ -167,15 +167,15 @@ function AuthPage() {
                 <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">verification code</label>
                 <input
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                  onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 8))}
                   required
                   inputMode="numeric"
                   autoFocus
-                  placeholder="000000"
+                  placeholder="00000000"
                   className="mt-1 w-full rounded-xl border border-border bg-background/40 px-3 py-2 text-center text-lg tracking-[0.5em] outline-none focus:border-primary/60"
                 />
               </div>
-              <button type="submit" disabled={busy || code.length < 6}
+              <button type="submit" disabled={busy || code.length < 8}
                 className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
                 {busy ? "..." : "verify"}
               </button>
