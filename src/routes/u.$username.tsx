@@ -398,15 +398,15 @@ function PublicProfile() {
                   <button key={s.id} type="button" aria-label={`copy ${s.platform} address`}
                     title={copiedId === s.id ? "copied!" : `copy ${s.platform} address`}
                     onClick={() => { navigator.clipboard.writeText(s.url); setCopiedId(s.id); setTimeout(() => setCopiedId((c) => (c === s.id ? null : c)), 1500); }}
-                    className={`${shared} overflow-hidden rounded-full`} style={img ? {} : { color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...(img ? {} : handlers)}>
-                    {copiedId === s.id ? <span className="text-xs font-mono">✓</span> : img ? <img src={img} alt={s.platform} className="h-full w-full object-cover" /> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
+                    className={`${shared} ${img ? "rounded-xl bg-white/90 p-1" : "overflow-hidden rounded-full"}`} style={img ? {} : { color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...(img ? {} : handlers)}>
+                    {copiedId === s.id ? <span className="text-xs font-mono">✓</span> : img ? <img src={img} alt={s.platform} className="h-full w-full rounded-lg object-contain" /> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
                   </button>
                 );
               }
               return (
                 <a key={s.id} href={s.url} target="_blank" rel="noreferrer noopener" aria-label={s.platform}
-                  className={`${shared} overflow-hidden rounded-full`} style={img ? {} : { color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...(img ? {} : handlers)}>
-                  {img ? <img src={img} alt={s.platform} className="h-full w-full object-cover" /> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
+                  className={`${shared} ${img ? "rounded-xl bg-white/90 p-1" : "overflow-hidden rounded-full"}`} style={img ? {} : { color: baseColor, filter: profile.monochrome_icons && !profile.no_glow ? `drop-shadow(0 0 5px ${baseColor}99)` : undefined }} {...(img ? {} : handlers)}>
+                  {img ? <img src={img} alt={s.platform} className="h-full w-full rounded-lg object-contain" /> : (PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website)}
                 </a>
               );
             })}
