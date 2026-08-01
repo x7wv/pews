@@ -28,5 +28,4 @@ npm run dev
 - React
 - Tailwind CSS
 
-
  
