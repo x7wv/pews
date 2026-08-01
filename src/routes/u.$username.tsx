@@ -41,7 +41,7 @@ export const Route = createFileRoute("/u/$username")({
 
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
 import { PLATFORM_BRAND_COLORS } from "@/lib/platform-colors";
-import { PLATFORM_IMAGES } from "@/lib/platform-images";
+import { PLATFORM_IMAGES } from "@/lib/social-images";
 import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet", "discorduser"]);
