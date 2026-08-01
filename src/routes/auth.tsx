@@ -157,7 +157,7 @@ function AuthPage() {
               {awaitingCode ? "check your email" : mode === "signup" ? "claim your name" : "welcome back"}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {awaitingCode ? `we sent a 6-digit code to ${email}` : mode === "signup" ? "your bio page in 30 seconds." : "sign in to your pews account."}
+              {awaitingCode ? `we sent a code to ${email}` : mode === "signup" ? "your bio page in 30 seconds." : "sign in to your pews account."}
             </p>
           </div>
 
