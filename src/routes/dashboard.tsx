@@ -552,10 +552,10 @@ function Dashboard() {
                 <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-10">
                   {PLATFORMS.map((p) => (
                     <button key={p} onClick={() => addSocial(p)} title={p}
-                      className="flex aspect-square items-center justify-center overflow-hidden rounded-full bg-white/5 transition hover:scale-110 hover:bg-white/10"
+                      className={`flex aspect-square items-center justify-center bg-white/5 transition hover:scale-110 hover:bg-white/10 ${PLATFORM_IMAGES[p] ? "rounded-xl p-1.5" : "overflow-hidden rounded-full"}`}
                       style={{ color: PLATFORM_BRAND_COLORS[p] ?? "currentColor" }}>
                       {PLATFORM_IMAGES[p] ? (
-                        <img src={PLATFORM_IMAGES[p]} alt={p} className="h-full w-full object-cover" />
+                        <img src={PLATFORM_IMAGES[p]} alt={p} className="h-full w-full rounded-lg object-contain" />
                       ) : (
                         PLATFORM_ICONS[p] ?? PLATFORM_ICONS.website
                       )}
@@ -569,9 +569,9 @@ function Dashboard() {
                 return (
                   <div key={s.id} className="flex items-center gap-2">
                     <div className="flex items-center gap-2 rounded-xl border border-border bg-background/30 px-2">
-                      <span className="flex-shrink-0 overflow-hidden rounded-full text-muted-foreground" style={{ width: PLATFORM_IMAGES[s.platform] ? 24 : undefined, height: PLATFORM_IMAGES[s.platform] ? 24 : undefined }}>
+                      <span className="flex-shrink-0 overflow-hidden rounded-lg text-muted-foreground" style={{ width: PLATFORM_IMAGES[s.platform] ? 24 : undefined, height: PLATFORM_IMAGES[s.platform] ? 24 : undefined }}>
                         {PLATFORM_IMAGES[s.platform] ? (
-                          <img src={PLATFORM_IMAGES[s.platform]} alt={s.platform} className="h-full w-full object-cover" />
+                          <img src={PLATFORM_IMAGES[s.platform]} alt={s.platform} className="h-full w-full object-contain" />
                         ) : (
                           PLATFORM_ICONS[s.platform] ?? PLATFORM_ICONS.website
                         )}
