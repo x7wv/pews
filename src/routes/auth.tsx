@@ -33,6 +33,8 @@ function AuthPage() {
   const [usernameCharError, setUsernameCharError] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [busy, setBusy] = useState(false);
+  const [awaitingCode, setAwaitingCode] = useState(false);
+  const [code, setCode] = useState("");
   const { session } = useSession();
   const navigate = useNavigate();
 
@@ -66,6 +68,10 @@ function AuthPage() {
           toast.error("that username is already taken");
           return;
         }
+        if (/\+.*@/.test(email)) {
+          toast.error("please use your plain email address, without a + in it");
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -78,7 +84,8 @@ function AuthPage() {
         if (data.session) {
           toast.success("account created — welcome!");
         } else {
-          toast.success("check your email to confirm your account before signing in");
+          setAwaitingCode(true);
+          toast.success("enter the code we emailed you");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -93,6 +100,33 @@ function AuthPage() {
       } else {
         toast.error(msg);
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "signup" });
+      if (error) throw error;
+      toast.success("account verified — welcome!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "invalid code");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendCode() {
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email });
+      if (error) throw error;
+      toast.success("code resent — check your email");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "couldn't resend code");
     } finally {
       setBusy(false);
     }
@@ -120,12 +154,39 @@ function AuthPage() {
         <div className="hud-corners rounded-3xl border border-border bg-card/60 backdrop-blur-2xl p-8 animate-fade-up">
           <div className="text-center">
             <h1 className="font-display text-3xl font-bold text-gradient">
-              {mode === "signup" ? "claim your name" : "welcome back"}
+              {awaitingCode ? "check your email" : mode === "signup" ? "claim your name" : "welcome back"}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {mode === "signup" ? "your bio page in 30 seconds." : "sign in to your pews account."}
+              {awaitingCode ? `we sent a 6-digit code to ${email}` : mode === "signup" ? "your bio page in 30 seconds." : "sign in to your pews account."}
             </p>
           </div>
+
+          {awaitingCode ? (
+            <form onSubmit={verifyCode} className="mt-6 space-y-3">
+              <div>
+                <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">verification code</label>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                  required
+                  inputMode="numeric"
+                  autoFocus
+                  placeholder="000000"
+                  className="mt-1 w-full rounded-xl border border-border bg-background/40 px-3 py-2 text-center text-lg tracking-[0.5em] outline-none focus:border-primary/60"
+                />
+              </div>
+              <button type="submit" disabled={busy || code.length < 6}
+                className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
+                {busy ? "..." : "verify"}
+              </button>
+              <div className="text-center text-xs text-muted-foreground">
+                didn't get it? <button type="button" onClick={resendCode} disabled={busy} className="text-primary hover:underline">resend code</button>
+              </div>
+              <button type="button" onClick={() => { setAwaitingCode(false); setCode(""); }}
+                className="w-full text-center text-xs text-muted-foreground hover:text-foreground">← back</button>
+            </form>
+          ) : (
+          <>
 
           <button
             onClick={google}
@@ -187,6 +248,8 @@ function AuthPage() {
               <>no account? <button onClick={() => setMode("signup")} className="text-primary hover:underline">sign up</button></>
             )}
           </div>
+          </>
+          )}
         </div>
         <Link to="/" className="mt-4 text-center text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground">← back home</Link>
       </section>
