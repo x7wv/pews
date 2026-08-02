@@ -50,7 +50,7 @@ const PLATFORMS = [
 ];
 const COPY_PLATFORMS = new Set(["discorduser"]);
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
-const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "share"] as const;
+const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "premium", "share"] as const;
 type Tab = typeof TABS[number];
 
 const MAX_LINKS_PER_ACCOUNT = 1;
@@ -693,6 +693,18 @@ function Dashboard() {
 
         {tab === "domain" && (
           <DomainPanel domain={domain} onConnect={connectDomain} onRemove={removeDomain} />
+        )}
+
+        {tab === "premium" && (
+          <Card title="premium">
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
+              </div>
+              <div className="text-lg font-semibold">coming soon</div>
+              <div className="max-w-sm text-sm text-muted-foreground">premium features are on the way — extra customization, perks, and more. check back soon.</div>
+            </div>
+          </Card>
         )}
 
         {tab === "share" && (
