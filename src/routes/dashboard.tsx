@@ -552,10 +552,10 @@ function Dashboard() {
                 <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-10">
                   {PLATFORMS.map((p) => (
                     <button key={p} onClick={() => addSocial(p)} title={p}
-                      className={`flex aspect-square items-center justify-center bg-white/5 transition hover:scale-110 hover:bg-white/10 ${PLATFORM_IMAGES[p] ? "rounded-xl p-1.5" : "overflow-hidden rounded-full"}`}
+                      className={`flex aspect-square min-w-0 items-center justify-center transition hover:scale-110 ${PLATFORM_IMAGES[p] ? "rounded-xl" : "overflow-hidden rounded-full bg-white/5 hover:bg-white/10"}`}
                       style={{ color: PLATFORM_BRAND_COLORS[p] ?? "currentColor" }}>
                       {PLATFORM_IMAGES[p] ? (
-                        <img src={PLATFORM_IMAGES[p]} alt={p} className="h-full w-full rounded-lg object-contain" />
+                        <img src={PLATFORM_IMAGES[p]} alt={p} className="h-12 w-12 max-h-full max-w-full rounded-lg object-contain" />
                       ) : (
                         PLATFORM_ICONS[p] ?? PLATFORM_ICONS.website
                       )}
