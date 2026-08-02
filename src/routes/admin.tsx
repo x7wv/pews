@@ -20,6 +20,7 @@ type Row = {
   is_banned: boolean;
   ban_reason: string | null;
   is_verified: boolean;
+  is_premium: boolean;
 };
 
 function AdminPanel() {
@@ -41,7 +42,7 @@ function AdminPanel() {
       setMyUsername(data?.username ?? "");
       if (!allowed) return;
       const [{ data: profiles }, { data: clicks }, { data: links }] = await Promise.all([
-        supabase.from("profiles").select("id, username, display_name, view_count, created_at, is_banned, ban_reason, is_verified").order("view_count", { ascending: false }),
+        supabase.from("profiles").select("id, username, display_name, view_count, created_at, is_banned, ban_reason, is_verified, is_premium").order("view_count", { ascending: false }),
         supabase.from("custom_links").select("click_count"),
         supabase.from("custom_links").select("id"),
       ]);
@@ -89,6 +90,12 @@ function AdminPanel() {
     const { error } = await supabase.from("profiles").update({ is_verified: !current }).eq("id", id);
     if (error) return alert(error.message);
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, is_verified: !current } : r)));
+  }
+
+  async function togglePremium(id: string, current: boolean) {
+    const { error } = await supabase.from("profiles").update({ is_premium: !current }).eq("id", id);
+    if (error) return alert(error.message);
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, is_premium: !current } : r)));
   }
 
   const filtered = rows.filter((r) => r.username.includes(q) || (r.display_name ?? "").toLowerCase().includes(q.toLowerCase()));
@@ -142,6 +149,7 @@ function AdminPanel() {
                       <div className="font-medium flex items-center gap-2">
                         {r.display_name || r.username}
                         {r.is_banned && <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-mono text-red-400">banned</span>}
+                        {r.is_premium && <span className="rounded-full bg-yellow-500/20 px-2 py-0.5 text-[10px] font-mono text-yellow-400">premium</span>}
                         {r.is_verified && <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-mono text-blue-400">verified</span>}
                       </div>
                       <div className="text-[10px] font-mono text-muted-foreground">@{r.username}</div>
@@ -151,6 +159,9 @@ function AdminPanel() {
                     <td className="py-2 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <Link to="/u/$username" params={{ username: r.username }} className="text-primary text-xs hover:underline">view →</Link>
+                        <button onClick={() => togglePremium(r.id, r.is_premium)} className={`text-xs hover:underline ${r.is_premium ? "text-muted-foreground" : "text-yellow-400"}`}>
+                          {r.is_premium ? "unpremium" : "make premium"}
+                        </button>
                         <button onClick={() => toggleVerified(r.id, r.is_verified)} className={`text-xs hover:underline ${r.is_verified ? "text-muted-foreground" : "text-blue-400"}`}>
                           {r.is_verified ? "unverify" : "verify"}
                         </button>
