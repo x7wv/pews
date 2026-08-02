@@ -185,6 +185,7 @@ export type Database = {
           icon_color: string
           id: string
           is_banned: boolean
+          is_verified: boolean
           monochrome_icons: boolean
           no_glow: boolean
           photo_url: string | null
@@ -192,6 +193,7 @@ export type Database = {
           profile_opacity: number
           song_art_url: string | null
           song_title: string | null
+          show_song_bar: boolean
           show_volume_control: boolean
           song_url: string | null
           swap_box_colors: boolean
@@ -221,6 +223,7 @@ export type Database = {
           icon_color?: string
           id: string
           is_banned?: boolean
+          is_verified?: boolean
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
@@ -228,6 +231,7 @@ export type Database = {
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
+          show_song_bar?: boolean
           show_volume_control?: boolean
           song_url?: string | null
           swap_box_colors?: boolean
@@ -256,6 +260,7 @@ export type Database = {
           icon_color?: string
           id?: string
           is_banned?: boolean
+          is_verified?: boolean
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
@@ -263,6 +268,7 @@ export type Database = {
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
+          show_song_bar?: boolean
           show_volume_control?: boolean
           song_url?: string | null
           swap_box_colors?: boolean
