@@ -164,6 +164,8 @@ function PublicProfile() {
   const songEmbed = useMemo(() => (profile.song_url ? songEmbedUrl(profile.song_url) : null), [profile.song_url]);
   const videoEmbed = useMemo(() => (profile.video_url ? videoEmbedUrl(profile.video_url) : null), [profile.video_url]);
   const textColor = profile.text_color || "#ffffff";
+  const useCustomFont = profile.font === "__custom__" && !!profile.custom_font_url;
+  const displayFont = useCustomFont ? "pews-custom-font" : (profile.font || "Space Grotesk");
   const iconColor = profile.monochrome_icons ? (profile.icon_color || "#ffffff") : undefined;
   const opacity = (profile.profile_opacity ?? 60) / 100;
   const blurPx = profile.profile_blur ?? 20;
@@ -286,6 +288,9 @@ function PublicProfile() {
       {profile.cursor_url && (
         <style dangerouslySetInnerHTML={{ __html: `.pews-profile, .pews-profile * { cursor: url(${JSON.stringify(profile.cursor_url).slice(1, -1)}) 16 16, auto !important; }` }} />
       )}
+      {useCustomFont && (
+        <style dangerouslySetInnerHTML={{ __html: `@font-face { font-family: 'pews-custom-font'; src: url(${JSON.stringify(profile.custom_font_url).slice(1, -1)}); }` }} />
+      )}
       {!entered && (mp3Active || videoEmbed) && (
         <button onClick={enterSite}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm text-center">
@@ -358,13 +363,19 @@ function PublicProfile() {
 
         <div className="relative mt-4 inline-block animate-fade-up" style={{ animationDelay: "60ms" }}
           onMouseEnter={() => setNameHovered(true)} onMouseLeave={() => setNameHovered(false)}>
-          <h1 className="inline-flex items-center gap-2 text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: profile.font || "Space Grotesk" }}>
+          <h1 className="inline-flex items-center gap-2 text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: displayFont }}>
             {displayName}
             {profile.is_verified && (
               <svg viewBox="0 0 24 24" fill={accent} className="h-6 w-6 flex-shrink-0 md:h-7 md:w-7">
                 <title>verified</title>
                 <path d="M12 2 9.5 4.5 6 4l-.5 3.5L2 9l2 3-2 3 3.5 1.5L6 20l3.5-.5L12 22l2.5-2.5L18 20l.5-3.5L22 15l-2-3 2-3-3.5-1.5L18 4l-3.5.5L12 2z"/>
                 <path d="M9 12.5l2 2 4-4.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.85"/>
+              </svg>
+            )}
+            {profile.is_premium && profile.premium_badge_enabled && (
+              <svg viewBox="0 0 24 24" fill="#FFD700" className="h-6 w-6 flex-shrink-0 md:h-7 md:w-7">
+                <title>premium</title>
+                <path d="M6 3h12l4 6-10 13L2 9Z"/>
               </svg>
             )}
           </h1>
@@ -377,7 +388,7 @@ function PublicProfile() {
 
         {profile.bio && (
           <div className="mt-2 animate-fade-up" style={{ animationDelay: "120ms" }}>
-            <p className="max-w-sm text-sm italic transition-opacity duration-150" style={{ color: textColor, opacity: nameHovered ? 0 : 0.65, fontFamily: profile.font || "Space Grotesk" }}>
+            <p className="max-w-sm text-sm italic transition-opacity duration-150" style={{ color: textColor, opacity: nameHovered ? 0 : 0.65, fontFamily: displayFont }}>
               {profile.bio}
             </p>
           </div>
@@ -502,9 +513,11 @@ function PublicProfile() {
             </div>
         )}
 
-        <a href="/" className="mt-6 text-[10px] font-mono uppercase tracking-widest text-white/30 hover:text-white/60 transition">
-          made with ♥ on pews · claim yours
-        </a>
+        {!(profile.is_premium && profile.hide_branding) && (
+          <a href="/" className="mt-6 text-[10px] font-mono uppercase tracking-widest text-white/30 hover:text-white/60 transition">
+            made with ♥ on pews · claim yours
+          </a>
+        )}
       </section>
     </main>
   );
