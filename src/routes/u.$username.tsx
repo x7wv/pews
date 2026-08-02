@@ -250,7 +250,11 @@ function PublicProfile() {
   function changeVolume(v: number) {
     const el = mp3Active ? audioRef.current : videoRef.current;
     if (!el) return;
-    el.volume = v;
+    // Human hearing perceives loudness on a curve, not linearly — a straight 0-1 slider
+    // mapped directly to el.volume sounds nearly identical across most of its range and
+    // only drops off right near zero. Squaring the slider value before applying it makes
+    // the slider actually feel linear to the ear.
+    el.volume = v * v;
     el.muted = v === 0;
     setMuted(v === 0);
     setVolume(v);
