@@ -158,8 +158,8 @@ function PublicProfile() {
   }
 
   const accent = profile.no_glow ? "#9ca3af" : (profile.accent_color || "#3b82f6");
-  const bgImage = profile.photo_url || profile.background_url || defaultBg;
-  const hasCustomBg = !!(profile.photo_url || profile.background_url);
+  const bgImage = profile.background_url || defaultBg;
+  const hasCustomBg = !!profile.background_url;
   const displayName = profile.display_name || profile.username;
   const songEmbed = useMemo(() => (profile.song_url ? songEmbedUrl(profile.song_url) : null), [profile.song_url]);
   const videoEmbed = useMemo(() => (profile.video_url ? videoEmbedUrl(profile.video_url) : null), [profile.video_url]);
@@ -354,8 +354,15 @@ function PublicProfile() {
 
         <div className="relative mt-4 inline-block animate-fade-up" style={{ animationDelay: "60ms" }}
           onMouseEnter={() => setNameHovered(true)} onMouseLeave={() => setNameHovered(false)}>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: profile.font || "Space Grotesk" }}>
+          <h1 className="inline-flex items-center gap-2 text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: profile.font || "Space Grotesk" }}>
             {displayName}
+            {profile.is_verified && (
+              <svg viewBox="0 0 24 24" fill={accent} className="h-6 w-6 flex-shrink-0 md:h-7 md:w-7">
+                <title>verified</title>
+                <path d="M12 2 9.5 4.5 6 4l-.5 3.5L2 9l2 3-2 3 3.5 1.5L6 20l3.5-.5L12 22l2.5-2.5L18 20l.5-3.5L22 15l-2-3 2-3-3.5-1.5L18 4l-3.5.5L12 2z"/>
+                <path d="M9 12.5l2 2 4-4.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.85"/>
+              </svg>
+            )}
           </h1>
           {profile.uid != null && (
             <div className={`pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-black/80 px-2.5 py-1 text-[10px] font-mono text-white/70 transition-opacity duration-150 ${nameHovered ? "opacity-100" : "opacity-0"}`}>
