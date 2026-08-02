@@ -177,19 +177,23 @@ export type Database = {
           bio: string | null
           created_at: string
           cursor_url: string | null
+          custom_font_url: string | null
           discord_id: string | null
           display_name: string | null
           entry_font: string
           entry_message: string | null
           font: string
+          hide_branding: boolean
           icon_color: string
           id: string
           is_banned: boolean
+          is_premium: boolean
           is_verified: boolean
           monochrome_icons: boolean
           no_glow: boolean
           photo_url: string | null
           profile_blur: number
+          premium_badge_enabled: boolean
           profile_opacity: number
           song_art_url: string | null
           song_title: string | null
@@ -215,19 +219,23 @@ export type Database = {
           bio?: string | null
           created_at?: string
           cursor_url?: string | null
+          custom_font_url?: string | null
           discord_id?: string | null
           display_name?: string | null
           entry_font?: string
           entry_message?: string | null
           font?: string
+          hide_branding?: boolean
           icon_color?: string
           id: string
           is_banned?: boolean
+          is_premium?: boolean
           is_verified?: boolean
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
+          premium_badge_enabled?: boolean
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
@@ -252,19 +260,23 @@ export type Database = {
           bio?: string | null
           created_at?: string
           cursor_url?: string | null
+          custom_font_url?: string | null
           discord_id?: string | null
           display_name?: string | null
           entry_font?: string
           entry_message?: string | null
           font?: string
+          hide_branding?: boolean
           icon_color?: string
           id?: string
           is_banned?: boolean
+          is_premium?: boolean
           is_verified?: boolean
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
+          premium_badge_enabled?: boolean
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
