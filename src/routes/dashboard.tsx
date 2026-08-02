@@ -33,6 +33,7 @@ type Profile = {
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   font: string; entry_message: string | null; entry_font: string; no_glow: boolean; audio_source: string;
+  is_verified: boolean;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -50,10 +51,9 @@ const PLATFORMS = [
 ];
 const COPY_PLATFORMS = new Set(["discorduser"]);
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
-const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "premium", "share"] as const;
+const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "share"] as const;
 type Tab = typeof TABS[number];
 
-const MAX_LINKS_PER_ACCOUNT = 1;
 
 const PRESET_THEMES = [
   { name: "crimson", accent: "#ef4444", particle: "#ef444488" },
@@ -197,8 +197,8 @@ function Dashboard() {
   }
   async function addLink() {
     if (!session) return;
-    if (links.length >= MAX_LINKS_PER_ACCOUNT) {
-      return toast.error(`each account gets ${MAX_LINKS_PER_ACCOUNT} link — delete your existing one to add a different link`);
+    if (links.length >= 1) {
+      return toast.error("each account gets 1 link — delete your existing one to add a different link");
     }
     const { data, error } = await supabase.from("custom_links").insert({
       user_id: session.user.id, title: "new link", url: "https://", position: links.length,
@@ -385,10 +385,6 @@ function Dashboard() {
             </Field>
             <Field label="bio">
               <textarea value={profile.bio ?? ""} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={3} className="input resize-none" />
-            </Field>
-            <Field label="showcase photo">
-              <ImageDropzone value={profile.photo_url} onUploaded={(url) => setProfile({ ...profile, photo_url: url })} preview="wide" />
-              <div className="mt-1 text-[11px] text-muted-foreground">an extra photo shown on your page, separate from your avatar</div>
             </Field>
             <Field label="discord presence">
               <input value={profile.discord_id ?? ""} onChange={(e) => setProfile({ ...profile, discord_id: e.target.value })} className="input" placeholder="your discord user id" />
@@ -643,12 +639,12 @@ function Dashboard() {
               })}
             </Card>
             <Card title="links" action={
-              <button onClick={addLink} disabled={links.length >= MAX_LINKS_PER_ACCOUNT}
+              <button onClick={addLink} disabled={links.length >= 1}
                 className="btn-sm disabled:opacity-30 disabled:pointer-events-none">+ add</button>
             }>
               {links.length === 0 && <Empty>no links yet.</Empty>}
-              {links.length >= MAX_LINKS_PER_ACCOUNT && (
-                <div className="text-[11px] text-muted-foreground">each account gets {MAX_LINKS_PER_ACCOUNT} link. delete it to add a different one.</div>
+              {links.length >= 1 && (
+                <div className="text-[11px] text-muted-foreground">each account gets 1 link. delete it to add a different one.</div>
               )}
               {links.map((l, i) => (
                 <div key={l.id} className="rounded-xl border border-border bg-background/30 p-3 space-y-2">
@@ -693,18 +689,6 @@ function Dashboard() {
 
         {tab === "domain" && (
           <DomainPanel domain={domain} onConnect={connectDomain} onRemove={removeDomain} />
-        )}
-
-        {tab === "premium" && (
-          <Card title="premium">
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
-              </div>
-              <div className="text-lg font-semibold">coming soon</div>
-              <div className="max-w-sm text-sm text-muted-foreground">premium features are on the way — extra customization, perks, and more. check back soon.</div>
-            </div>
-          </Card>
         )}
 
         {tab === "share" && (
