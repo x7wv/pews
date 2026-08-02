@@ -865,6 +865,24 @@ function Card({ title, action, children }: { title: string; action?: React.React
     </div>
   );
 }
+
+/** Best-effort cleanup: delete the previous file from storage when it's being replaced.
+ *  Uses the real Storage API (not raw SQL) — Supabase blocks direct SQL deletes on
+ *  storage.objects as a safety feature, so this has to happen client-side like this. */
+async function deleteOldFile(oldUrl: string | null | undefined) {
+  if (!oldUrl) return;
+  const marker = "/profile-media/";
+  const idx = oldUrl.indexOf(marker);
+  if (idx === -1) return;
+  const path = oldUrl.slice(idx + marker.length);
+  if (!path) return;
+  try {
+    await supabase.storage.from("profile-media").remove([path]);
+  } catch {
+    // non-fatal — the new file is already live either way
+  }
+}
+
 function BackgroundDropzone({ backgroundUrl, videoUrl, onUploaded }: {
   backgroundUrl: string | null;
   videoUrl: string | null;
@@ -921,6 +939,7 @@ function BackgroundDropzone({ backgroundUrl, videoUrl, onUploaded }: {
     setUploading(false);
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
+    deleteOldFile(videoUrl || backgroundUrl);
     onUploaded(ext === "mp4" ? "video" : "image", data.publicUrl);
     toast.success("uploaded");
   }
@@ -961,7 +980,7 @@ function BackgroundDropzone({ backgroundUrl, videoUrl, onUploaded }: {
         {uploading ? "uploading…" : fileName || "drag & drop an image or mp4"}
       </span>
       {currentUrl && !uploading && (
-        <button onClick={(e) => { e.stopPropagation(); onUploaded("image", ""); }} aria-label="remove"
+        <button onClick={(e) => { e.stopPropagation(); deleteOldFile(videoUrl || backgroundUrl); onUploaded("image", ""); }} aria-label="remove"
           className="flex-shrink-0 text-red-400 transition hover:text-red-300">×</button>
       )}
     </div>
@@ -992,6 +1011,7 @@ function MediaDropzone({ value, onUploaded, accept, label }: {
     setUploading(false);
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
+    deleteOldFile(value);
     onUploaded(data.publicUrl);
     toast.success("uploaded");
   }
@@ -1020,7 +1040,7 @@ function MediaDropzone({ value, onUploaded, accept, label }: {
         {uploading ? "uploading…" : fileName || label}
       </span>
       {fileName && !uploading && (
-        <button onClick={(e) => { e.stopPropagation(); onUploaded(""); }} aria-label="remove"
+        <button onClick={(e) => { e.stopPropagation(); deleteOldFile(value); onUploaded(""); }} aria-label="remove"
           className="flex-shrink-0 text-red-400 transition hover:text-red-300">×</button>
       )}
     </div>
@@ -1108,6 +1128,7 @@ function ImageDropzone({ value, onUploaded, preview, hint, resizeTo }: {
     setUploading(false);
     if (error) return toast.error(error.message);
     const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
+    deleteOldFile(value);
     onUploaded(data.publicUrl);
     toast.success("uploaded");
   }
@@ -1150,7 +1171,7 @@ function ImageDropzone({ value, onUploaded, preview, hint, resizeTo }: {
           )}
         </div>
         {value && !uploading && (
-          <button onClick={(e) => { e.stopPropagation(); onUploaded(""); }} className="btn-sm-ghost flex-shrink-0">×</button>
+          <button onClick={(e) => { e.stopPropagation(); deleteOldFile(value); onUploaded(""); }} className="btn-sm-ghost flex-shrink-0">×</button>
         )}
       </div>
     </div>
