@@ -26,6 +26,7 @@ export const SOCIAL_URL_PREFIX: Record<string, string> = {
   xbox: "https://account.xbox.com/en-us/profile?gamertag=",
   playstation: "https://psnprofiles.com/",
   applemusic: "https://music.apple.com/profile/",
+  email: "mailto:",
 };
 
 /** Platforms intentionally left out: discord (invite links vary), website (arbitrary url),
