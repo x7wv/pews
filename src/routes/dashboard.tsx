@@ -623,7 +623,7 @@ function Dashboard() {
                         <input
                           value={stripPrefix(s.platform, s.url)}
                           onChange={(e) => updateSocial(s.id, { url: applyPrefix(s.platform, e.target.value) })}
-                          placeholder="yourname"
+                          placeholder={s.platform === "email" ? "you@email.com" : "yourname"}
                           className="w-full flex-1 bg-transparent py-2 pl-0.5 text-sm outline-none" />
                       </div>
                     ) : (
