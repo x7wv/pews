@@ -306,7 +306,7 @@ function Dashboard() {
       <div className="pointer-events-none fixed inset-0 -z-10 grid-overlay opacity-60" />
       <div className="pointer-events-none fixed inset-0 -z-10" style={{ background: "radial-gradient(ellipse 800px 500px at 50% -10%, oklch(0.62 0.19 250 / 12%), transparent 70%)" }} />
       <Header />
-      <section className="mx-auto max-w-4xl px-4 pt-24">
+      <section className="mx-auto max-w-6xl px-4 pt-24">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold">your page</h1>
@@ -328,6 +328,25 @@ function Dashboard() {
           </div>
         </div>
 
+        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
+          <aside className="lg:w-52 lg:flex-shrink-0 lg:sticky lg:top-24">
+            <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-1.5 lg:flex-col lg:overflow-visible">
+              {TABS.map((t) => (
+                <button key={t} onClick={() => setTab(t)}
+                  className={`rounded-xl px-4 py-2.5 text-left text-xs font-mono uppercase tracking-widest whitespace-nowrap transition-all duration-200 ${tab === t ? "bg-primary text-primary-foreground shadow-[0_4px_16px_-4px_var(--color-primary)]" : "text-muted-foreground hover:text-foreground hover:bg-background/40"}`}>
+                  {t}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
+              <span>dashboard</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3"><path d="m9 18 6-6-6-6"/></svg>
+              <span className="text-foreground">{tab}</span>
+            </div>
+
         {/* Stats */}
         {tab === "analytics" && (
           <div className="mt-6 grid grid-cols-3 gap-3">
@@ -336,16 +355,6 @@ function Dashboard() {
             <Stat label="since" value={new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "2-digit" })} />
           </div>
         )}
-
-        {/* Tabs */}
-        <div className="mt-8 flex gap-1 rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-1 overflow-x-auto">
-          {TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-xl text-xs font-mono uppercase tracking-widest transition-all duration-200 whitespace-nowrap ${tab === t ? "bg-primary text-primary-foreground shadow-[0_4px_16px_-4px_var(--color-primary)] scale-105" : "text-muted-foreground hover:text-foreground hover:bg-background/40"}`}>
-              {t}
-            </button>
-          ))}
-        </div>
 
         {tab === "profile" && (
           <Card title="profile">
@@ -501,6 +510,33 @@ function Dashboard() {
                 <div className="text-[11px] text-muted-foreground">force all social icons to your icon color instead of their brand colors</div>
               </div>
               <Checkmark checked={profile.monochrome_icons} onToggle={() => setProfile({ ...profile, monochrome_icons: !profile.monochrome_icons })} />
+            </div>
+            <div className="rounded-xl border border-border bg-background/20 p-3">
+              <div className="mb-2 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">preview</div>
+              <div className="flex flex-wrap items-center justify-center gap-3 rounded-lg bg-black/20 p-3">
+                {["discord", "instagram", "spotify", "twitter", "paypal", "bitcoin"].map((p) => {
+                  const useMask = profile.monochrome_icons && PLATFORM_IMAGES[p];
+                  const tint = profile.monochrome_icons ? profile.icon_color : PLATFORM_BRAND_COLORS[p];
+                  return (
+                    <div key={p} className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white/5 [&>svg]:h-full [&>svg]:w-full [&>svg]:p-2"
+                      style={{ color: tint }}>
+                      {useMask ? (
+                        <div className="h-full w-full" style={{
+                          backgroundColor: tint,
+                          WebkitMaskImage: `url(${PLATFORM_IMAGES[p]})`, maskImage: `url(${PLATFORM_IMAGES[p]})`,
+                          WebkitMaskSize: "contain", maskSize: "contain",
+                          WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
+                          WebkitMaskPosition: "center", maskPosition: "center",
+                        }} />
+                      ) : PLATFORM_IMAGES[p] ? (
+                        <img src={PLATFORM_IMAGES[p]} alt={p} className="h-full w-full object-contain" />
+                      ) : (
+                        PLATFORM_ICONS[p]
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
               <div>
@@ -670,6 +706,8 @@ function Dashboard() {
             </div>
           </Card>
         )}
+          </div>
+        </div>
       </section>
 
       <style>{`
