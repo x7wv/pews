@@ -1,15 +1,15 @@
-import applemusic from "@/assets/applemusic.jpg";
-import bitcoin from "@/assets/bitcoin.webp";
-import fansly from "@/assets/fansly.jpg";
-import onlyfans from "@/assets/onlyfans.webp";
-import paypal from "@/assets/paypal.jpg";
-import playstation from "@/assets/playstation.jpg";
-import reddit from "@/assets/reddit.jpg";
-import snapchat from "@/assets/snapchat.jpg";
-import soundcloud from "@/assets/soundcloud.webp";
-import threads from "@/assets/threads.jpg";
-import venmo from "@/assets/venmo.jpg";
-import xbox from "@/assets/xbox.jpg";
+import applemusic from "@/assets/applemusic.png";
+import bitcoin from "@/assets/bitcoin.png";
+import fansly from "@/assets/fansly.png";
+import onlyfans from "@/assets/onlyfans.png";
+import paypal from "@/assets/paypal.png";
+import playstation from "@/assets/playstation.png";
+import reddit from "@/assets/reddit.png";
+import snapchat from "@/assets/snapchat.png";
+import soundcloud from "@/assets/soundcloud.png";
+import threads from "@/assets/threads.png";
+import venmo from "@/assets/venmo.png";
+import xbox from "@/assets/xbox.png";
 
 export const PLATFORM_IMAGES: Record<string, string> = {
   applemusic,
