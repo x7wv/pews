@@ -33,7 +33,7 @@ type Profile = {
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   font: string; entry_message: string | null; entry_font: string; no_glow: boolean; audio_source: string;
-  is_verified: boolean;
+  is_verified: boolean; is_premium: boolean; premium_badge_enabled: boolean; hide_branding: boolean; custom_font_url: string | null;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -51,7 +51,7 @@ const PLATFORMS = [
 ];
 const COPY_PLATFORMS = new Set(["discorduser"]);
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
-const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "share"] as const;
+const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "premium", "share"] as const;
 type Tab = typeof TABS[number];
 
 
@@ -137,7 +137,8 @@ function Dashboard() {
   useEffect(() => {
     if (!profile) return;
     const uname = profile.username.trim().toLowerCase();
-    if (!uname || uname.length < 3) { setUsernameStatus("idle"); return; }
+    const minLen = profile.is_premium ? 1 : 3;
+    if (!uname || uname.length < minLen) { setUsernameStatus("idle"); return; }
     setUsernameStatus("checking");
     const t = setTimeout(async () => {
       const { data } = await supabase.from("profiles").select("id").eq("username", uname).maybeSingle();
@@ -145,7 +146,7 @@ function Dashboard() {
       else setUsernameStatus("taken");
     }, 400);
     return () => clearTimeout(t);
-  }, [profile?.username, profile?.id]);
+  }, [profile?.username, profile?.id, profile?.is_premium]);
 
   async function saveProfile(silent = false) {
     if (!profile) return;
@@ -164,6 +165,7 @@ function Dashboard() {
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
       font: profile.font, entry_message: profile.entry_message, entry_font: profile.entry_font, no_glow: profile.no_glow,
       audio_source: profile.audio_source,
+      premium_badge_enabled: profile.premium_badge_enabled, hide_branding: profile.hide_branding, custom_font_url: profile.custom_font_url,
     }).eq("id", profile.id);
     if (!silent) setSaving(false);
     if (error) { if (!silent) toast.error(error.message); }
@@ -197,8 +199,9 @@ function Dashboard() {
   }
   async function addLink() {
     if (!session) return;
-    if (links.length >= 1) {
-      return toast.error("each account gets 1 link — delete your existing one to add a different link");
+    const maxLinks = profile?.is_premium ? 5 : 1;
+    if (links.length >= maxLinks) {
+      return toast.error(`${profile?.is_premium ? "premium accounts get 5 links" : "free accounts get 1 link — upgrade to premium for up to 5"} — delete an existing one to add a different link`);
     }
     const { data, error } = await supabase.from("custom_links").insert({
       user_id: session.user.id, title: "new link", url: "https://", position: links.length,
@@ -639,12 +642,14 @@ function Dashboard() {
               })}
             </Card>
             <Card title="links" action={
-              <button onClick={addLink} disabled={links.length >= 1}
+              <button onClick={addLink} disabled={links.length >= (profile.is_premium ? 5 : 1)}
                 className="btn-sm disabled:opacity-30 disabled:pointer-events-none">+ add</button>
             }>
               {links.length === 0 && <Empty>no links yet.</Empty>}
-              {links.length >= 1 && (
-                <div className="text-[11px] text-muted-foreground">each account gets 1 link. delete it to add a different one.</div>
+              {links.length >= (profile.is_premium ? 5 : 1) && (
+                <div className="text-[11px] text-muted-foreground">
+                  {profile.is_premium ? "premium accounts get up to 5 links." : "free accounts get 1 link — upgrade to premium for up to 5."} delete one to add a different one.
+                </div>
               )}
               {links.map((l, i) => (
                 <div key={l.id} className="rounded-xl border border-border bg-background/30 p-3 space-y-2">
@@ -689,6 +694,45 @@ function Dashboard() {
 
         {tab === "domain" && (
           <DomainPanel domain={domain} onConnect={connectDomain} onRemove={removeDomain} />
+        )}
+
+        {tab === "premium" && (
+          profile.is_premium ? (
+            <Card title="premium">
+              <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">✨ you have premium — thanks for the support!</div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+                <div>
+                  <div className="text-sm font-medium">premium badge</div>
+                  <div className="text-[11px] text-muted-foreground">show a premium badge next to your username on your public page</div>
+                </div>
+                <Checkmark checked={profile.premium_badge_enabled} onToggle={() => setProfile({ ...profile, premium_badge_enabled: !profile.premium_badge_enabled })} />
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+                <div>
+                  <div className="text-sm font-medium">hide branding</div>
+                  <div className="text-[11px] text-muted-foreground">remove the "made with pews" footer from your page</div>
+                </div>
+                <Checkmark checked={profile.hide_branding} onToggle={() => setProfile({ ...profile, hide_branding: !profile.hide_branding })} />
+              </div>
+              <Field label="custom font">
+                <FontFileDropzone value={profile.custom_font_url} onUploaded={(url) => setProfile({ ...profile, custom_font_url: url, font: "__custom__" })} />
+                <div className="mt-1 text-[11px] text-muted-foreground">upload your own .woff2/.woff/.ttf — applies as your display name/bio font. clear it below to go back to the built-in list.</div>
+              </Field>
+              <div className="rounded-xl border border-border bg-background/30 px-4 py-3 text-[11px] text-muted-foreground">
+                you also get up to <span className="text-foreground">5 custom links</span> (up from 1) and usernames as short as <span className="text-foreground">1 character</span>.
+              </div>
+            </Card>
+          ) : (
+            <Card title="premium">
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
+                </div>
+                <div className="text-lg font-semibold">coming soon</div>
+                <div className="max-w-sm text-sm text-muted-foreground">premium features are on the way — up to 5 custom links, a premium badge, custom fonts, no branding, shorter usernames, and more. check back soon.</div>
+              </div>
+            </Card>
+          )
         )}
 
         {tab === "share" && (
@@ -981,6 +1025,60 @@ function BackgroundDropzone({ backgroundUrl, videoUrl, onUploaded }: {
       </span>
       {currentUrl && !uploading && (
         <button onClick={(e) => { e.stopPropagation(); deleteOldFile(videoUrl || backgroundUrl); onUploaded("image", ""); }} aria-label="remove"
+          className="flex-shrink-0 text-red-400 transition hover:text-red-300">×</button>
+      )}
+    </div>
+  );
+}
+
+function FontFileDropzone({ value, onUploaded }: { value: string | null; onUploaded: (url: string) => void }) {
+  const { session } = useSession();
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const allowedExts = ["woff2", "woff", "ttf", "otf"];
+
+  async function upload(file: File) {
+    if (!session) return toast.error("sign in required");
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!allowedExts.includes(ext)) return toast.error("only .woff2, .woff, .ttf, or .otf files are supported");
+    if (file.size > 10 * 1024 * 1024) return toast.error("file too large — 10MB max");
+    setUploading(true);
+    const path = `${session.user.id}/${Date.now()}-font.${ext}`;
+    const { error } = await supabase.storage.from("profile-media").upload(path, file, { upsert: true });
+    setUploading(false);
+    if (error) return toast.error(error.message);
+    const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
+    deleteOldFile(value);
+    onUploaded(data.publicUrl);
+    toast.success("font uploaded");
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) upload(file);
+  }
+
+  const fileName = value ? decodeURIComponent(value.split("/").pop() ?? "") : null;
+
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={onDrop}
+      onClick={() => inputRef.current?.click()}
+      className={`flex cursor-pointer items-center gap-2 rounded-xl border-2 border-dashed p-3 transition ${dragging ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}
+    >
+      <input ref={inputRef} type="file" accept=".woff2,.woff,.ttf,.otf" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4 flex-shrink-0 text-muted-foreground"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+        {uploading ? "uploading…" : fileName || "drag & drop a font file"}
+      </span>
+      {fileName && !uploading && (
+        <button onClick={(e) => { e.stopPropagation(); deleteOldFile(value); onUploaded(""); }} aria-label="remove"
           className="flex-shrink-0 text-red-400 transition hover:text-red-300">×</button>
       )}
     </div>
