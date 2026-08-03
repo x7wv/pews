@@ -179,6 +179,7 @@ export type Database = {
           cursor_url: string | null
           custom_favicon_url: string | null
           custom_font_url: string | null
+          avatar_video_url: string | null
           discord_id: string | null
           display_name: string | null
           entry_font: string
@@ -190,13 +191,17 @@ export type Database = {
           is_banned: boolean
           is_premium: boolean
           is_verified: boolean
+          gradient_name: boolean
           layout_style: string
           monochrome_icons: boolean
           no_glow: boolean
           photo_url: string | null
           profile_blur: number
           premium_badge_enabled: boolean
+          cursor_trail: boolean
           parallax_tilt: boolean
+          password_hash: string | null
+          password_protected: boolean
           profile_opacity: number
           song_art_url: string | null
           song_title: string | null
@@ -226,6 +231,7 @@ export type Database = {
           cursor_url?: string | null
           custom_favicon_url?: string | null
           custom_font_url?: string | null
+          avatar_video_url?: string | null
           discord_id?: string | null
           display_name?: string | null
           entry_font?: string
@@ -237,13 +243,17 @@ export type Database = {
           is_banned?: boolean
           is_premium?: boolean
           is_verified?: boolean
+          gradient_name?: boolean
           layout_style?: string
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
           premium_badge_enabled?: boolean
+          cursor_trail?: boolean
           parallax_tilt?: boolean
+          password_hash?: string | null
+          password_protected?: boolean
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
@@ -272,6 +282,7 @@ export type Database = {
           cursor_url?: string | null
           custom_favicon_url?: string | null
           custom_font_url?: string | null
+          avatar_video_url?: string | null
           discord_id?: string | null
           display_name?: string | null
           entry_font?: string
@@ -283,13 +294,17 @@ export type Database = {
           is_banned?: boolean
           is_premium?: boolean
           is_verified?: boolean
+          gradient_name?: boolean
           layout_style?: string
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
           premium_badge_enabled?: boolean
+          cursor_trail?: boolean
           parallax_tilt?: boolean
+          password_hash?: string | null
+          password_protected?: boolean
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
@@ -340,6 +355,9 @@ export type Database = {
     }
     Functions: {
       bump_link_click: { Args: { link_id: string }; Returns: undefined }
+      get_public_profile: { Args: { p_username: string }; Returns: Json }
+      verify_profile_password: { Args: { p_username: string; p_password: string }; Returns: Json }
+      set_profile_password: { Args: { p_password: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
