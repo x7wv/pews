@@ -33,7 +33,8 @@ type Profile = {
   background_color: string; text_color: string; icon_color: string;
   profile_opacity: number; profile_blur: number; monochrome_icons: boolean; swap_box_colors: boolean; cursor_url: string | null;
   font: string; entry_message: string | null; entry_font: string; no_glow: boolean; audio_source: string;
-  is_verified: boolean; is_premium: boolean; premium_badge_enabled: boolean; hide_branding: boolean; custom_font_url: string | null;
+  is_verified: boolean; is_premium: boolean; premium_badge_enabled: boolean; hide_branding: boolean; custom_font_url: string | null; custom_favicon_url: string | null;
+  typewriter_name: boolean; typewriter_bio: boolean; parallax_tilt: boolean; layout_style: string;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -165,7 +166,8 @@ function Dashboard() {
       monochrome_icons: profile.monochrome_icons, swap_box_colors: profile.swap_box_colors, cursor_url: profile.cursor_url,
       font: profile.font, entry_message: profile.entry_message, entry_font: profile.entry_font, no_glow: profile.no_glow,
       audio_source: profile.audio_source,
-      premium_badge_enabled: profile.premium_badge_enabled, hide_branding: profile.hide_branding, custom_font_url: profile.custom_font_url,
+      premium_badge_enabled: profile.premium_badge_enabled, hide_branding: profile.hide_branding, custom_font_url: profile.custom_font_url, custom_favicon_url: profile.custom_favicon_url,
+      typewriter_name: profile.typewriter_name, typewriter_bio: profile.typewriter_bio, parallax_tilt: profile.parallax_tilt, layout_style: profile.layout_style,
     }).eq("id", profile.id);
     if (!silent) setSaving(false);
     if (error) { if (!silent) toast.error(error.message); }
@@ -718,8 +720,48 @@ function Dashboard() {
                 <FontFileDropzone value={profile.custom_font_url} onUploaded={(url) => setProfile({ ...profile, custom_font_url: url, font: "__custom__" })} />
                 <div className="mt-1 text-[11px] text-muted-foreground">upload your own .woff2/.woff/.ttf — applies as your display name/bio font. clear it below to go back to the built-in list.</div>
               </Field>
+              <Field label="custom favicon">
+                <ImageDropzone value={profile.custom_favicon_url} onUploaded={(url) => setProfile({ ...profile, custom_favicon_url: url })} preview="round" />
+                <div className="mt-1 text-[11px] text-muted-foreground">shows as your page's browser tab icon instead of the default pews icon</div>
+              </Field>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+                <div>
+                  <div className="text-sm font-medium">typewriter name</div>
+                  <div className="text-[11px] text-muted-foreground">your display name types itself out on your page</div>
+                </div>
+                <Checkmark checked={profile.typewriter_name} onToggle={() => setProfile({ ...profile, typewriter_name: !profile.typewriter_name })} />
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+                <div>
+                  <div className="text-sm font-medium">typewriter bio</div>
+                  <div className="text-[11px] text-muted-foreground">your bio types itself out on your page</div>
+                </div>
+                <Checkmark checked={profile.typewriter_bio} onToggle={() => setProfile({ ...profile, typewriter_bio: !profile.typewriter_bio })} />
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+                <div>
+                  <div className="text-sm font-medium">parallax tilt</div>
+                  <div className="text-[11px] text-muted-foreground">your profile tilts toward the mouse, like it has weight</div>
+                </div>
+                <Checkmark checked={profile.parallax_tilt} onToggle={() => setProfile({ ...profile, parallax_tilt: !profile.parallax_tilt })} />
+              </div>
+              <Field label="layout">
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { id: "default", label: "default", hint: "centered, stacked" },
+                    { id: "card", label: "card", hint: "boxed in a panel" },
+                    { id: "banner", label: "banner", hint: "avatar beside name" },
+                  ] as const).map((l) => (
+                    <button key={l.id} onClick={() => setProfile({ ...profile, layout_style: l.id })}
+                      className={`rounded-xl border p-3 text-left transition ${profile.layout_style === l.id ? "border-primary bg-primary/10" : "border-border bg-background/30 hover:border-primary/40"}`}>
+                      <div className="text-sm font-medium">{l.label}</div>
+                      <div className="text-[11px] text-muted-foreground">{l.hint}</div>
+                    </button>
+                  ))}
+                </div>
+              </Field>
               <div className="rounded-xl border border-border bg-background/30 px-4 py-3 text-[11px] text-muted-foreground">
-                you also get up to <span className="text-foreground">5 custom links</span> (up from 1) and usernames as short as <span className="text-foreground">1 character</span>.
+                you also get up to <span className="text-foreground">5 custom links</span> (up from 1), usernames as short as <span className="text-foreground">1 character</span>, and a custom favicon.
               </div>
             </Card>
           ) : (
@@ -729,7 +771,7 @@ function Dashboard() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
                 </div>
                 <div className="text-lg font-semibold">coming soon</div>
-                <div className="max-w-sm text-sm text-muted-foreground">premium features are on the way — up to 5 custom links, a premium badge, custom fonts, no branding, shorter usernames, and more. check back soon.</div>
+                <div className="max-w-sm text-sm text-muted-foreground">premium features are on the way — up to 5 custom links, a premium badge, custom fonts, a custom favicon, no branding, shorter usernames, and more. check back soon.</div>
               </div>
             </Card>
           )
