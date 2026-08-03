@@ -96,6 +96,18 @@
   100% { background-position: 200% 0; }
 }
 
+.pews-gradient-name {
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: pews-gradient-shift 3.5s linear infinite;
+}
+@keyframes pews-gradient-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -118,6 +130,9 @@
   background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.1), transparent);
   background-size: 200% 100%;
   animation: shimmer 3s linear infinite;
+}
+@utility animate-splash-out {
+  animation: splash-out 0.5s ease-out forwards;
 }
 
 @keyframes scan-sweep {
