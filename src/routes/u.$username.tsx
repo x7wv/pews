@@ -34,6 +34,7 @@ export const Route = createFileRoute("/u/$username")({
         { property: "og:type", content: "profile" },
         { name: "twitter:card", content: "summary_large_image" },
       ],
+      links: p?.is_premium && p?.custom_favicon_url ? [{ rel: "icon", href: p.custom_favicon_url }] : [],
     };
   },
   component: PublicProfile,
@@ -105,6 +106,22 @@ function DiscordCard({ discordId, boxStyle, blurPx, textColor }: { discordId: st
   );
 }
 
+function useTypewriter(text: string, enabled: boolean, speed = 45) {
+  const [shown, setShown] = useState(enabled ? "" : text);
+  useEffect(() => {
+    if (!enabled) { setShown(text); return; }
+    setShown("");
+    let i = 0;
+    const t = setInterval(() => {
+      i++;
+      setShown(text.slice(0, i));
+      if (i >= text.length) clearInterval(t);
+    }, speed);
+    return () => clearInterval(t);
+  }, [text, enabled, speed]);
+  return shown;
+}
+
 function PublicProfile() {
   const { profile, socials, links } = Route.useLoaderData();
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -129,6 +146,7 @@ function PublicProfile() {
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(0.5);
   const bgRef = useRef<HTMLDivElement>(null);
+  const tiltRef = useRef<HTMLElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -144,14 +162,20 @@ function PublicProfile() {
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const el = bgRef.current;
-      if (!el) return;
-      const x = (e.clientX / window.innerWidth - 0.5) * 20;
-      const y = (e.clientY / window.innerHeight - 0.5) * 20;
-      el.style.transform = `scale(1.08) translate(${x}px, ${y}px)`;
+      if (el) {
+        const x = (e.clientX / window.innerWidth - 0.5) * 20;
+        const y = (e.clientY / window.innerHeight - 0.5) * 20;
+        el.style.transform = `scale(1.08) translate(${x}px, ${y}px)`;
+      }
+      if (profile.is_premium && profile.parallax_tilt && tiltRef.current) {
+        const rotY = (e.clientX / window.innerWidth - 0.5) * 14;
+        const rotX = (e.clientY / window.innerHeight - 0.5) * -14;
+        tiltRef.current.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+      }
     };
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
-  }, []);
+  }, [profile.is_premium, profile.parallax_tilt]);
 
   async function handleLinkClick(id: string) {
     await supabase.rpc("bump_link_click", { link_id: id });
@@ -161,6 +185,8 @@ function PublicProfile() {
   const bgImage = profile.background_url || defaultBg;
   const hasCustomBg = !!profile.background_url;
   const displayName = profile.display_name || profile.username;
+  const typedName = useTypewriter(displayName, profile.is_premium && profile.typewriter_name);
+  const typedBio = useTypewriter(profile.bio ?? "", profile.is_premium && profile.typewriter_bio);
   const songEmbed = useMemo(() => (profile.song_url ? songEmbedUrl(profile.song_url) : null), [profile.song_url]);
   const videoEmbed = useMemo(() => (profile.video_url ? videoEmbedUrl(profile.video_url) : null), [profile.video_url]);
   const textColor = profile.text_color || "#ffffff";
@@ -347,7 +373,13 @@ function PublicProfile() {
         {views.toLocaleString()}
       </div>
 
-      <section className="relative z-10 mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-20 text-center">
+      <section ref={tiltRef as React.RefObject<HTMLElement>}
+        className={`relative z-10 mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-6 py-20 text-center ${profile.layout_style === "card" ? "gap-0" : ""}`}
+        style={profile.is_premium && profile.parallax_tilt ? { transition: "transform 0.15s ease-out", willChange: "transform" } : undefined}>
+        {profile.is_premium && profile.layout_style === "card" && (
+          <div className="pointer-events-none absolute inset-x-4 inset-y-10 -z-[1] rounded-3xl border border-white/10 bg-black/30" style={{ backdropFilter: `blur(${blurPx}px)` }} />
+        )}
+        <div className={profile.is_premium && profile.layout_style === "banner" ? "flex w-full flex-row items-center gap-5 text-left" : "contents"}>
         <div className="animate-fade-up" style={{ animationDelay: "0ms" }}>
           <div className="relative mx-auto h-20 w-20">
             {!profile.no_glow && <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 30px ${accent}80, 0 0 60px ${accent}30` }} />}
@@ -361,10 +393,10 @@ function PublicProfile() {
           </div>
         </div>
 
-        <div className="relative mt-4 inline-block animate-fade-up" style={{ animationDelay: "60ms" }}
+        <div className={`relative animate-fade-up ${profile.is_premium && profile.layout_style === "banner" ? "" : "mt-4 inline-block"}`} style={{ animationDelay: "60ms" }}
           onMouseEnter={() => setNameHovered(true)} onMouseLeave={() => setNameHovered(false)}>
           <h1 className="inline-flex items-center gap-2 text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: displayFont }}>
-            {displayName}
+            {typedName}
             {profile.is_verified && (
               <svg viewBox="0 0 24 24" fill={accent} className="h-6 w-6 flex-shrink-0 md:h-7 md:w-7">
                 <title>verified</title>
@@ -385,11 +417,12 @@ function PublicProfile() {
             </div>
           )}
         </div>
+        </div>
 
         {profile.bio && (
           <div className="mt-2 animate-fade-up" style={{ animationDelay: "120ms" }}>
             <p className="max-w-sm text-sm italic transition-opacity duration-150" style={{ color: textColor, opacity: nameHovered ? 0 : 0.65, fontFamily: displayFont }}>
-              {profile.bio}
+              {typedBio}
             </p>
           </div>
         )}
