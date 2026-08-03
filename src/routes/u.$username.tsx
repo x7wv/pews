@@ -5,26 +5,29 @@ import { getOrCreateSessionToken } from "@/lib/auth";
 import defaultBg from "@/assets/pews-bg.jpg";
 import defaultAvatar from "@/assets/pews-avatar.jpg";
 
+type FullData = { locked: false; profile: any; socials: any[]; links: any[] };
+type LockedPreview = { locked: true; id: string; username: string; display_name: string | null; avatar_url: string | null; is_banned: boolean };
+
 export const Route = createFileRoute("/u/$username")({
-  loader: async ({ params }) => {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .ilike("username", params.username)
-      .limit(1)
-      .maybeSingle();
+  loader: async ({ params }): Promise<FullData | LockedPreview> => {
+    const { data, error } = await supabase.rpc("get_public_profile", { p_username: params.username });
     if (error) throw error;
-    if (!profile) throw notFound();
-    const [{ data: socials }, { data: links }] = await Promise.all([
-      supabase.from("social_links").select("*").eq("user_id", profile.id).order("position"),
-      supabase.from("custom_links").select("*").eq("user_id", profile.id).order("position"),
-    ]);
-    return { profile, socials: socials ?? [], links: links ?? [] };
+    if (!data) throw notFound();
+    const result = data as any;
+    if (result.locked) {
+      return { locked: true, id: result.id, username: result.username, display_name: result.display_name, avatar_url: result.avatar_url, is_banned: result.is_banned };
+    }
+    return { locked: false, profile: result.profile, socials: result.socials ?? [], links: result.links ?? [] };
   },
   head: ({ loaderData }) => {
-    const p = loaderData?.profile;
-    const title = p ? `${p.display_name || "@" + p.username} — pews` : "pews";
-    const desc = p?.bio || `${p?.username ?? "user"}'s pews bio page.`;
+    if (!loaderData) return { meta: [{ title: "pews" }] };
+    if (loaderData.locked) {
+      const title = `${loaderData.display_name || "@" + loaderData.username} — pews`;
+      return { meta: [{ title }, { name: "description", content: "this profile is password protected." }] };
+    }
+    const p = loaderData.profile;
+    const title = `${p.display_name || "@" + p.username} — pews`;
+    const desc = p.bio || `${p.username}'s pews bio page.`;
     return {
       meta: [
         { title },
@@ -34,10 +37,10 @@ export const Route = createFileRoute("/u/$username")({
         { property: "og:type", content: "profile" },
         { name: "twitter:card", content: "summary_large_image" },
       ],
-      links: p?.is_premium && p?.custom_favicon_url ? [{ rel: "icon", href: p.custom_favicon_url }] : [],
+      links: p.is_premium && p.custom_favicon_url ? [{ rel: "icon", href: p.custom_favicon_url }] : [],
     };
   },
-  component: PublicProfile,
+  component: PublicProfileGate,
 });
 
 import { PLATFORM_ICONS } from "@/lib/platform-icons";
@@ -46,6 +49,34 @@ import { PLATFORM_IMAGES } from "@/lib/social-images";
 import { songEmbedUrl, videoEmbedUrl, fetchTrackTitle, formatTime } from "@/lib/media-embed";
 import { useLanyard, discordAvatarUrl, STATUS_COLORS } from "@/lib/lanyard";
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet", "discorduser"]);
+
+function CursorTrail({ color }: { color: string }) {
+  const [dots, setDots] = useState<{ id: number; x: number; y: number }[]>([]);
+  const idRef = useRef(0);
+  const lastRef = useRef(0);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const now = Date.now();
+      if (now - lastRef.current < 35) return;
+      lastRef.current = now;
+      const id = idRef.current++;
+      setDots((prev) => [...prev.slice(-14), { id, x: e.clientX, y: e.clientY }]);
+      setTimeout(() => setDots((prev) => prev.filter((d) => d.id !== id)), 500);
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+      {dots.map((d) => (
+        <span key={d.id} className="absolute rounded-full animate-splash-out"
+          style={{ left: d.x, top: d.y, width: 6, height: 6, marginLeft: -3, marginTop: -3, background: color, boxShadow: `0 0 8px ${color}` }} />
+      ))}
+    </div>
+  );
+}
 
 function Particles({ color }: { color: string }) {
   const items = useMemo(() =>
@@ -122,8 +153,57 @@ function useTypewriter(text: string, enabled: boolean, speed = 45) {
   return shown;
 }
 
-function PublicProfile() {
-  const { profile, socials, links } = Route.useLoaderData();
+function PublicProfileGate() {
+  const loaderData = Route.useLoaderData();
+  const [unlocked, setUnlocked] = useState<{ profile: any; socials: any[]; links: any[] } | null>(null);
+
+  if (!loaderData.locked) {
+    return <PublicProfile profile={loaderData.profile} socials={loaderData.socials} links={loaderData.links} />;
+  }
+  if (unlocked) {
+    return <PublicProfile profile={unlocked.profile} socials={unlocked.socials} links={unlocked.links} />;
+  }
+  return <LockScreen preview={loaderData} onUnlock={(data) => setUnlocked(data)} />;
+}
+
+function LockScreen({ preview, onUnlock }: {
+  preview: { username: string; display_name: string | null; avatar_url: string | null };
+  onUnlock: (data: { profile: any; socials: any[]; links: any[] }) => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [wrong, setWrong] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setChecking(true);
+    setWrong(false);
+    const { data, error } = await supabase.rpc("verify_profile_password", { p_username: preview.username, p_password: password });
+    setChecking(false);
+    if (error || !data || !(data as any).ok) { setWrong(true); return; }
+    const result = data as any;
+    onUnlock({ profile: result.profile, socials: result.socials ?? [], links: result.links ?? [] });
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-6 font-sans">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-8 text-center">
+        <img src={preview.avatar_url || defaultAvatar} alt="" className="mx-auto h-16 w-16 rounded-full object-cover" />
+        <h1 className="mt-4 text-lg font-semibold text-white">{preview.display_name || preview.username}'s profile is locked</h1>
+        <div className="mt-1 text-sm text-white/40">enter the password to view this page</div>
+        <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setWrong(false); }} autoFocus
+          className="mt-5 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-sm text-white outline-none focus:border-primary" placeholder="password" />
+        {wrong && <div className="mt-2 text-xs text-red-400">wrong password — try again</div>}
+        <button type="submit" disabled={checking || !password}
+          className="mt-4 w-full rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50">
+          {checking ? "checking…" : "unlock"}
+        </button>
+      </form>
+    </main>
+  );
+}
+
+function PublicProfile({ profile, socials, links }: { profile: any; socials: any[]; links: any[] }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [views, setViews] = useState(profile.view_count);
   const [playing, setPlaying] = useState(false);
@@ -157,6 +237,14 @@ function PublicProfile() {
       .then(({ error }) => {
         if (!error) setViews((v: number) => v + 1);
       });
+  }, [profile.id]);
+
+  useEffect(() => {
+    const channel = supabase.channel(`presence:profile:${profile.id}`, { config: { presence: { key: getOrCreateSessionToken() } } });
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") channel.track({ online_at: new Date().toISOString() });
+    });
+    return () => { supabase.removeChannel(channel); };
   }, [profile.id]);
 
   useEffect(() => {
@@ -342,6 +430,7 @@ function PublicProfile() {
         {!videoEmbed && !hasCustomBg && <div className="absolute inset-0 grid-overlay opacity-30" />}
       </div>
       <Particles color={`${accent}66`} />
+      {profile.cursor_trail && <CursorTrail color={accent} />}
 
 
       {mp3Active && (
@@ -383,19 +472,27 @@ function PublicProfile() {
         <div className="animate-fade-up" style={{ animationDelay: "0ms" }}>
           <div className="relative mx-auto h-20 w-20">
             {!profile.no_glow && <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 30px ${accent}80, 0 0 60px ${accent}30` }} />}
-            <img
-              src={avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar)}
-              onError={() => setAvatarFailed(true)}
-              alt={displayName}
-              className="relative h-20 w-20 rounded-full border-2 object-cover"
-              style={{ borderColor: `${accent}99` }}
-            />
+            {profile.is_premium && profile.avatar_video_url ? (
+              <video src={profile.avatar_video_url} autoPlay loop muted playsInline
+                className="relative h-20 w-20 rounded-full border-2 object-cover" style={{ borderColor: `${accent}99` }} />
+            ) : (
+              <img
+                src={avatarFailed ? defaultAvatar : (profile.avatar_url || defaultAvatar)}
+                onError={() => setAvatarFailed(true)}
+                alt={displayName}
+                className="relative h-20 w-20 rounded-full border-2 object-cover"
+                style={{ borderColor: `${accent}99` }}
+              />
+            )}
           </div>
         </div>
 
         <div className={`relative animate-fade-up ${profile.is_premium && profile.layout_style === "banner" ? "" : "mt-4 inline-block"}`} style={{ animationDelay: "60ms" }}
           onMouseEnter={() => setNameHovered(true)} onMouseLeave={() => setNameHovered(false)}>
-          <h1 className="inline-flex items-center gap-2 text-4xl md:text-5xl font-bold tracking-tight" style={{ color: textColor, fontFamily: displayFont }}>
+          <h1 className={`inline-flex items-center gap-2 text-4xl md:text-5xl font-bold tracking-tight ${profile.is_premium && profile.gradient_name ? "pews-gradient-name" : ""}`}
+            style={profile.is_premium && profile.gradient_name
+              ? { fontFamily: displayFont, backgroundImage: `linear-gradient(90deg, ${accent}, #fff, ${accent})` }
+              : { color: textColor, fontFamily: displayFont }}>
             {typedName}
             {profile.is_verified && (
               <svg viewBox="0 0 24 24" fill={accent} className="h-6 w-6 flex-shrink-0 md:h-7 md:w-7">
