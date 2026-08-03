@@ -35,6 +35,7 @@ type Profile = {
   font: string; entry_message: string | null; entry_font: string; no_glow: boolean; audio_source: string;
   is_verified: boolean; is_premium: boolean; premium_badge_enabled: boolean; hide_branding: boolean; custom_font_url: string | null; custom_favicon_url: string | null;
   typewriter_name: boolean; typewriter_bio: boolean; parallax_tilt: boolean; layout_style: string;
+  gradient_name: boolean; avatar_video_url: string | null; cursor_trail: boolean; password_protected: boolean;
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -75,6 +76,7 @@ function Dashboard() {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [domain, setDomain] = useState<Domain | null>(null);
   const [clicks, setClicks] = useState<ClickRow[]>([]);
+  const [liveVisitors, setLiveVisitors] = useState(0);
   const [range, setRange] = useState<"24h" | "7d" | "30d" | "all">("7d");
   const [saving, setSaving] = useState(false);
   const [autoSavedAt, setAutoSavedAt] = useState<number | null>(null);
@@ -118,6 +120,18 @@ function Dashboard() {
     const t = setTimeout(() => setProfileTimedOut(true), 8000);
     return () => clearTimeout(t);
   }, [session, profile]);
+
+  useEffect(() => {
+    if (!profile?.is_premium) return;
+    const channel = supabase.channel(`presence:profile:${profile.id}`);
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        setLiveVisitors(Object.keys(state).length);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [profile?.id, profile?.is_premium]);
 
   useEffect(() => {
     if (!session || tab !== "analytics" || links.length === 0) return;
@@ -168,6 +182,7 @@ function Dashboard() {
       audio_source: profile.audio_source,
       premium_badge_enabled: profile.premium_badge_enabled, hide_branding: profile.hide_branding, custom_font_url: profile.custom_font_url, custom_favicon_url: profile.custom_favicon_url,
       typewriter_name: profile.typewriter_name, typewriter_bio: profile.typewriter_bio, parallax_tilt: profile.parallax_tilt, layout_style: profile.layout_style,
+      gradient_name: profile.gradient_name, avatar_video_url: profile.avatar_video_url, cursor_trail: profile.cursor_trail,
     }).eq("id", profile.id);
     if (!silent) setSaving(false);
     if (error) { if (!silent) toast.error(error.message); }
@@ -354,10 +369,11 @@ function Dashboard() {
 
         {/* Stats */}
         {tab === "analytics" && (
-          <div className="mt-6 grid grid-cols-3 gap-3">
+          <div className={`mt-6 grid gap-3 ${profile.is_premium ? "grid-cols-4" : "grid-cols-3"}`}>
             <Stat label="views" value={profile.view_count.toLocaleString()} />
             <Stat label="clicks" value={totalClicks.toLocaleString()} />
             <Stat label="since" value={new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", year: "2-digit" })} />
+            {profile.is_premium && <Stat label="live now" value={liveVisitors.toLocaleString()} />}
           </div>
         )}
 
@@ -560,6 +576,13 @@ function Dashboard() {
               </div>
               <Checkmark checked={profile.show_song_bar} onToggle={() => setProfile({ ...profile, show_song_bar: !profile.show_song_bar })} />
             </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium">cursor trail</div>
+                <div className="text-[11px] text-muted-foreground">a little trail of particles follows the mouse on your page</div>
+              </div>
+              <Checkmark checked={profile.cursor_trail} onToggle={() => setProfile({ ...profile, cursor_trail: !profile.cursor_trail })} />
+            </div>
           </Card>
           </>
         )}
@@ -726,6 +749,17 @@ function Dashboard() {
               </Field>
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
                 <div>
+                  <div className="text-sm font-medium">gradient name</div>
+                  <div className="text-[11px] text-muted-foreground">your display name animates through a shifting color gradient</div>
+                </div>
+                <Checkmark checked={profile.gradient_name} onToggle={() => setProfile({ ...profile, gradient_name: !profile.gradient_name })} />
+              </div>
+              <Field label="video avatar">
+                <MediaDropzone value={profile.avatar_video_url} onUploaded={(url) => setProfile({ ...profile, avatar_video_url: url })} accept="video/mp4,.mp4" label="drag & drop a short mp4 clip" />
+                <div className="mt-1 text-[11px] text-muted-foreground">a short looping video instead of a static avatar image. clear it to go back to your regular avatar</div>
+              </Field>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+                <div>
                   <div className="text-sm font-medium">typewriter name</div>
                   <div className="text-[11px] text-muted-foreground">your display name types itself out on your page</div>
                 </div>
@@ -760,6 +794,7 @@ function Dashboard() {
                   ))}
                 </div>
               </Field>
+              <PasswordProtectField protected_={profile.password_protected} onChange={(v) => setProfile({ ...profile, password_protected: v })} />
               <div className="rounded-xl border border-border bg-background/30 px-4 py-3 text-[11px] text-muted-foreground">
                 you also get up to <span className="text-foreground">5 custom links</span> (up from 1), usernames as short as <span className="text-foreground">1 character</span>, and a custom favicon.
               </div>
@@ -1326,6 +1361,44 @@ function Checkmark({ checked, onToggle }: { checked: boolean; onToggle: () => vo
         <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M20 6 9 17l-5-5"/></svg>
       )}
     </button>
+  );
+}
+
+function PasswordProtectField({ protected_, onChange }: { protected_: boolean; onChange: (v: boolean) => void }) {
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function setPw() {
+    if (!password) return toast.error("enter a password first");
+    setSaving(true);
+    const { error } = await supabase.rpc("set_profile_password", { p_password: password });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    setPassword("");
+    onChange(true);
+    toast.success("your page is now password protected");
+  }
+
+  async function clearPw() {
+    setSaving(true);
+    const { error } = await supabase.rpc("set_profile_password", { p_password: "" });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    onChange(false);
+    toast.success("password protection removed");
+  }
+
+  return (
+    <Field label="password protect your page">
+      <div className="text-[11px] text-muted-foreground mb-2">
+        {protected_ ? "your page currently requires a password to view." : "nobody can view your page until they enter this."}
+      </div>
+      <div className="flex gap-2">
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={protected_ ? "set a new password" : "choose a password"} className="input flex-1" />
+        <button onClick={setPw} disabled={saving} className="btn-sm disabled:opacity-50">{protected_ ? "update" : "protect"}</button>
+        {protected_ && <button onClick={clearPw} disabled={saving} className="btn-sm-ghost">remove</button>}
+      </div>
+    </Field>
   );
 }
 
