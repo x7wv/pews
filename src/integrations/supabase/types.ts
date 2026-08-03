@@ -177,6 +177,7 @@ export type Database = {
           bio: string | null
           created_at: string
           cursor_url: string | null
+          custom_favicon_url: string | null
           custom_font_url: string | null
           discord_id: string | null
           display_name: string | null
@@ -189,11 +190,13 @@ export type Database = {
           is_banned: boolean
           is_premium: boolean
           is_verified: boolean
+          layout_style: string
           monochrome_icons: boolean
           no_glow: boolean
           photo_url: string | null
           profile_blur: number
           premium_badge_enabled: boolean
+          parallax_tilt: boolean
           profile_opacity: number
           song_art_url: string | null
           song_title: string | null
@@ -202,6 +205,8 @@ export type Database = {
           song_url: string | null
           swap_box_colors: boolean
           text_color: string
+          typewriter_bio: boolean
+          typewriter_name: boolean
           uid: number
           updated_at: string
           username: string
@@ -219,6 +224,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           cursor_url?: string | null
+          custom_favicon_url?: string | null
           custom_font_url?: string | null
           discord_id?: string | null
           display_name?: string | null
@@ -231,11 +237,13 @@ export type Database = {
           is_banned?: boolean
           is_premium?: boolean
           is_verified?: boolean
+          layout_style?: string
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
           premium_badge_enabled?: boolean
+          parallax_tilt?: boolean
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
@@ -244,6 +252,8 @@ export type Database = {
           song_url?: string | null
           swap_box_colors?: boolean
           text_color?: string
+          typewriter_bio?: boolean
+          typewriter_name?: boolean
           updated_at?: string
           username: string
           video_url?: string | null
@@ -260,6 +270,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           cursor_url?: string | null
+          custom_favicon_url?: string | null
           custom_font_url?: string | null
           discord_id?: string | null
           display_name?: string | null
@@ -272,11 +283,13 @@ export type Database = {
           is_banned?: boolean
           is_premium?: boolean
           is_verified?: boolean
+          layout_style?: string
           monochrome_icons?: boolean
           no_glow?: boolean
           photo_url?: string | null
           profile_blur?: number
           premium_badge_enabled?: boolean
+          parallax_tilt?: boolean
           profile_opacity?: number
           song_art_url?: string | null
           song_title?: string | null
@@ -285,6 +298,8 @@ export type Database = {
           song_url?: string | null
           swap_box_colors?: boolean
           text_color?: string
+          typewriter_bio?: boolean
+          typewriter_name?: boolean
           updated_at?: string
           username?: string
           video_url?: string | null
