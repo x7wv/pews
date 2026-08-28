@@ -17,7 +17,7 @@ type Entry = { date: string; items: string[] };
 
 const LOG: Entry[] = [
   {
-    date: "August 4, 2026",
+    date: "August 27, 2026",
     items: [
       "light/dark mode toggle (dark by default)",
       "preview mode — see exactly what visitors see, separate from the editor",
