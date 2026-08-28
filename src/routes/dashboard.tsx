@@ -11,6 +11,7 @@ import { PLATFORM_IMAGES } from "@/lib/social-images";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import { containsBlockedTerm } from "@/lib/moderation";
 import { SOCIAL_URL_PREFIX, stripPrefix, applyPrefix } from "@/lib/social-prefixes";
+import { PublicProfile } from "@/routes/u.$username";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -79,6 +80,9 @@ function Dashboard() {
   const [liveVisitors, setLiveVisitors] = useState(0);
   const [range, setRange] = useState<"24h" | "7d" | "30d" | "all">("7d");
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [undoing, setUndoing] = useState(false);
+  const lastSavedProfileRef = useRef<Profile | null>(null);
   const [autoSavedAt, setAutoSavedAt] = useState<number | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [changingUsername, setChangingUsername] = useState(false);
@@ -105,6 +109,7 @@ function Dashboard() {
       if (p.data) {
         const pr = p.data as Profile;
         setProfile(pr);
+        lastSavedProfileRef.current = pr;
         setOriginalUsername(pr.username.trim().toLowerCase());
         setDraftTheme({ name: "", accent: pr.accent_color, background: pr.background_url ?? "", particle: pr.accent_color + "88" });
       }
@@ -168,6 +173,9 @@ function Dashboard() {
     if (usernameStatus === "taken") return silent ? undefined : toast.error("that username is already taken");
     if (containsBlockedTerm(profile.username)) return silent ? undefined : toast.error("that username isn't allowed");
     if (!silent) setSaving(true);
+    if (lastSavedProfileRef.current) {
+      await supabase.from("profile_history").insert({ user_id: profile.id, snapshot: lastSavedProfileRef.current as any }).select().maybeSingle().then(() => {}, () => {});
+    }
     const { error } = await supabase.from("profiles").update({
       username: profile.username.toLowerCase(), display_name: profile.display_name, bio: profile.bio,
       avatar_url: profile.avatar_url, background_url: profile.background_url, accent_color: profile.accent_color,
@@ -186,7 +194,43 @@ function Dashboard() {
     }).eq("id", profile.id);
     if (!silent) setSaving(false);
     if (error) { if (!silent) toast.error(error.message); }
-    else { if (!silent) toast.success("saved!"); else setAutoSavedAt(Date.now()); }
+    else {
+      lastSavedProfileRef.current = profile;
+      if (!silent) toast.success("saved!"); else setAutoSavedAt(Date.now());
+    }
+  }
+
+  async function undoLastSave() {
+    if (!profile || !session) return;
+    setUndoing(true);
+    const { data, error } = await supabase.from("profile_history")
+      .select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (error || !data) {
+      setUndoing(false);
+      return toast.error("nothing to undo yet.");
+    }
+    const snapshot = data.snapshot as Profile;
+    setProfile(snapshot);
+    await supabase.from("profiles").update({
+      username: snapshot.username, display_name: snapshot.display_name, bio: snapshot.bio,
+      avatar_url: snapshot.avatar_url, background_url: snapshot.background_url, accent_color: snapshot.accent_color,
+      song_url: snapshot.song_url, video_url: snapshot.video_url, photo_url: snapshot.photo_url,
+      discord_id: snapshot.discord_id,
+      song_title: snapshot.song_title, song_art_url: snapshot.song_art_url,
+      show_volume_control: snapshot.show_volume_control, show_song_bar: snapshot.show_song_bar,
+      background_color: snapshot.background_color, text_color: snapshot.text_color, icon_color: snapshot.icon_color,
+      profile_opacity: snapshot.profile_opacity, profile_blur: snapshot.profile_blur,
+      monochrome_icons: snapshot.monochrome_icons, swap_box_colors: snapshot.swap_box_colors, cursor_url: snapshot.cursor_url,
+      font: snapshot.font, entry_message: snapshot.entry_message, entry_font: snapshot.entry_font, no_glow: snapshot.no_glow,
+      audio_source: snapshot.audio_source,
+      premium_badge_enabled: snapshot.premium_badge_enabled, hide_branding: snapshot.hide_branding, custom_font_url: snapshot.custom_font_url, custom_favicon_url: snapshot.custom_favicon_url,
+      typewriter_name: snapshot.typewriter_name, typewriter_bio: snapshot.typewriter_bio, parallax_tilt: snapshot.parallax_tilt, layout_style: snapshot.layout_style,
+      gradient_name: snapshot.gradient_name, avatar_video_url: snapshot.avatar_video_url, cursor_trail: snapshot.cursor_trail,
+    }).eq("id", profile.id);
+    await supabase.from("profile_history").delete().eq("id", data.id);
+    lastSavedProfileRef.current = snapshot;
+    setUndoing(false);
+    toast.success("reverted to your previous save.");
   }
 
   const isFirstProfileLoad = useRef(true);
@@ -341,12 +385,31 @@ function Dashboard() {
             {autoSavedAt && !saving && (
               <span className="text-[11px] text-muted-foreground">autosaved</span>
             )}
+            <button onClick={() => setPreviewOpen(true)}
+              className="rounded-xl border border-border bg-background/40 px-4 py-2 text-sm font-medium hover:border-primary transition">
+              preview
+            </button>
+            <button onClick={undoLastSave} disabled={undoing}
+              className="rounded-xl border border-border bg-background/40 px-4 py-2 text-sm font-medium hover:border-primary transition disabled:opacity-50">
+              {undoing ? "undoing…" : "undo"}
+            </button>
             <button onClick={() => saveProfile()} disabled={saving}
               className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
               {saving ? "saving…" : "save"}
             </button>
           </div>
         </div>
+
+        {previewOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
+            <button onClick={() => setPreviewOpen(false)}
+              className="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-xl border border-border bg-card/90 px-4 py-2 text-sm font-medium backdrop-blur-xl hover:border-primary transition">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="m15 18-6-6 6-6"/></svg>
+              back to editor
+            </button>
+            <PublicProfile profile={profile} socials={socials} links={links} previewMode />
+          </div>
+        )}
 
         <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
           <aside className="lg:w-52 lg:flex-shrink-0 lg:sticky lg:top-24">
@@ -701,6 +764,7 @@ function Dashboard() {
         )}
 
         {tab === "themes" && draftTheme && (
+          <>
           <ThemeEditor
             draft={draftTheme}
             setDraft={setDraftTheme}
@@ -715,6 +779,8 @@ function Dashboard() {
             onDelete={deleteTheme}
             onClearTheme={clearTheme}
           />
+          <TemplateExporter profile={profile} onImport={(patch) => setProfile({ ...profile, ...patch })} />
+          </>
         )}
 
         {tab === "domain" && (
@@ -724,7 +790,10 @@ function Dashboard() {
         {tab === "premium" && (
           profile.is_premium ? (
             <Card title="premium">
-              <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">✨ you have premium — thanks for the support!</div>
+              <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 flex-shrink-0"><path d="m12 2 2.2 6.8H21l-5.6 4.1 2.1 6.8L12 15.8l-5.5 3.9 2.1-6.8L3 8.8h6.8Z"/></svg>
+                you have premium — thanks for the support!
+              </div>
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
                 <div>
                   <div className="text-sm font-medium">premium badge</div>
@@ -817,9 +886,15 @@ function Dashboard() {
             <QRCodeCard url={profileUrl} accent={profile.accent_color} />
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button onClick={() => { navigator.clipboard.writeText(profileUrl); toast.success("link copied"); }}
-                className="rounded-xl border border-border bg-background/40 p-3 text-sm hover:border-primary">📋 copy link</button>
+                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background/40 p-3 text-sm hover:border-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/></svg>
+                copy link
+              </button>
               <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`check out my pews page: ${profileUrl}`)}`} target="_blank" rel="noreferrer"
-                className="rounded-xl border border-border bg-background/40 p-3 text-sm hover:border-primary text-center">🐦 share on X</a>
+                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background/40 p-3 text-sm hover:border-primary text-center">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                share on X
+              </a>
             </div>
           </Card>
         )}
@@ -968,6 +1043,53 @@ function DomainPanel({ domain, onConnect, onRemove }: { domain: Domain | null; o
           </div>
         </>
       )}
+    </Card>
+  );
+}
+
+const TEMPLATE_STYLE_FIELDS = [
+  "accent_color", "background_color", "text_color", "icon_color",
+  "profile_opacity", "profile_blur", "monochrome_icons", "swap_box_colors",
+  "font", "entry_message", "entry_font", "no_glow", "audio_source",
+  "show_volume_control", "show_song_bar", "layout_style", "gradient_name",
+  "parallax_tilt", "typewriter_name", "typewriter_bio", "cursor_trail",
+] as const;
+
+function TemplateExporter({ profile, onImport }: { profile: Profile; onImport: (patch: Partial<Profile>) => void }) {
+  const [pasted, setPasted] = useState("");
+
+  function copyTemplate() {
+    const template: Record<string, unknown> = {};
+    for (const key of TEMPLATE_STYLE_FIELDS) template[key] = (profile as any)[key];
+    navigator.clipboard.writeText(JSON.stringify(template, null, 2));
+    toast.success("style copied — paste it into another account's dashboard to reuse it");
+  }
+
+  function applyTemplate() {
+    try {
+      const parsed = JSON.parse(pasted);
+      const patch: Record<string, unknown> = {};
+      for (const key of TEMPLATE_STYLE_FIELDS) if (key in parsed) patch[key] = parsed[key];
+      if (Object.keys(patch).length === 0) return toast.error("that doesn't look like a pews style template.");
+      onImport(patch);
+      setPasted("");
+      toast.success("style applied — remember to hit save.");
+    } catch {
+      toast.error("couldn't read that — make sure you pasted the whole thing.");
+    }
+  }
+
+  return (
+    <Card title="clone as template">
+      <div className="text-[11px] text-muted-foreground">
+        copy your current style (colors, font, layout, effects — not your bio or links) so you can reuse it as a starting point on another account.
+      </div>
+      <button onClick={copyTemplate} className="btn-sm w-full text-center">copy my style</button>
+      <div className="pt-2">
+        <textarea value={pasted} onChange={(e) => setPasted(e.target.value)} rows={4}
+          placeholder="paste a copied style here to apply it to this account" className="input resize-none font-mono text-xs" />
+        <button onClick={applyTemplate} disabled={!pasted.trim()} className="btn-sm-ghost mt-2 w-full text-center disabled:opacity-30">apply pasted style</button>
+      </div>
     </Card>
   );
 }
@@ -1565,8 +1687,9 @@ function UtmBuilder({ link }: { link: CustomLink }) {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn-sm-ghost w-full text-center">
-        🔗 generate campaign share link
+      <button onClick={() => setOpen(true)} className="btn-sm-ghost inline-flex w-full items-center justify-center gap-1.5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-3.5 w-3.5"><path d="M10 14a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/></svg>
+        generate campaign share link
       </button>
     );
   }
