@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DonateRouteImport } from './routes/donate'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as UpdatesRouteImport } from './routes/updates'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
 
@@ -42,6 +43,11 @@ const DonateRoute = DonateRouteImport.update({
   path: '/donate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UpdatesRoute = UpdatesRouteImport.update({
   id: '/updates',
   path: '/updates',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/updates': typeof UpdatesRoute
   '/u/$username': typeof UUsernameRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/updates': typeof UpdatesRoute
   '/u/$username': typeof UUsernameRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
+  '/leaderboard': typeof LeaderboardRoute
   '/updates': typeof UpdatesRoute
   '/u/$username': typeof UUsernameRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/donate'
+    | '/leaderboard'
     | '/updates'
     | '/u/$username'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/donate'
+    | '/leaderboard'
     | '/updates'
     | '/u/$username'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/donate'
+    | '/leaderboard'
     | '/updates'
     | '/u/$username'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   DonateRoute: typeof DonateRoute
+  LeaderboardRoute: typeof LeaderboardRoute
   UpdatesRoute: typeof UpdatesRoute
   UUsernameRoute: typeof UUsernameRoute
 }
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DonateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leaderboard': {
+      id: '/leaderboard'
+      path: '/leaderboard'
+      fullPath: '/leaderboard'
+      preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/updates': {
       id: '/updates'
       path: '/updates'
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   DonateRoute: DonateRoute,
+  LeaderboardRoute: LeaderboardRoute,
   UpdatesRoute: UpdatesRoute,
   UUsernameRoute: UUsernameRoute,
 }
