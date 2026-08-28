@@ -64,7 +64,7 @@ function AdminPanel() {
       <main className="min-h-screen">
         <Header />
         <div className="pt-32 text-center">
-          <div className="text-6xl mb-4">🔒</div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-4 h-14 w-14 text-muted-foreground"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
           <div className="font-display text-2xl font-bold">access denied</div>
           <div className="mt-2 text-sm text-muted-foreground">this area is restricted to admins.</div>
           <Link to="/dashboard" className="mt-6 inline-block text-primary hover:underline text-sm">← back to dashboard</Link>
