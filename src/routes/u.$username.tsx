@@ -107,7 +107,7 @@ function DiscordCard({ discordId, boxStyle, blurPx, textColor }: { discordId: st
   if (!presence?.found || !presence.discord_user) {
     return (
       <div className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-left" style={{ ...boxStyle, backdropFilter: `blur(${blurPx}px)` }}>
-        <span className="text-lg">❌</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 flex-shrink-0" style={{ color: `${textColor}99` }}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>
         <div>
           <div className="text-sm font-medium" style={{ color: textColor }}>User Not found</div>
           <div className="text-xs" style={{ color: `${textColor}99` }}>
@@ -203,7 +203,7 @@ function LockScreen({ preview, onUnlock }: {
   );
 }
 
-function PublicProfile({ profile, socials, links }: { profile: any; socials: any[]; links: any[] }) {
+export function PublicProfile({ profile, socials, links, previewMode = false }: { profile: any; socials: any[]; links: any[]; previewMode?: boolean }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [views, setViews] = useState(profile.view_count);
   const [playing, setPlaying] = useState(false);
@@ -231,21 +231,23 @@ function PublicProfile({ profile, socials, links }: { profile: any; socials: any
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    if (previewMode) return;
     const token = getOrCreateSessionToken();
     supabase.from("profile_views")
       .insert({ profile_id: profile.id, session_token: token })
       .then(({ error }) => {
         if (!error) setViews((v: number) => v + 1);
       });
-  }, [profile.id]);
+  }, [profile.id, previewMode]);
 
   useEffect(() => {
+    if (previewMode) return;
     const channel = supabase.channel(`presence:profile:${profile.id}`, { config: { presence: { key: getOrCreateSessionToken() } } });
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") channel.track({ online_at: new Date().toISOString() });
     });
     return () => { supabase.removeChannel(channel); };
-  }, [profile.id]);
+  }, [profile.id, previewMode]);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
