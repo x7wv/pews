@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth";
+import { useTheme } from "@/lib/use-theme";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/pews-logo.png";
 
@@ -10,6 +11,7 @@ export function Header() {
   const { user, loading } = useSession();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const { isDark, toggle } = useTheme();
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -33,6 +35,15 @@ export function Header() {
           pews
         </Link>
         <nav className="flex items-center gap-2 text-sm">
+          <button onClick={toggle} aria-label="toggle theme"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition">
+            {isDark ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            )}
+          </button>
+          <Link to="/leaderboard" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition text-xs font-medium">leaderboard</Link>
           <Link to="/updates" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition text-xs font-medium">updates</Link>
           <Link to="/donate" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition text-xs font-medium">donate</Link>
           <a href="https://discord.gg/zmfZZNsZh8" target="_blank" rel="noreferrer"
