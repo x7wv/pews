@@ -104,17 +104,17 @@ function Landing() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { t: "customizable", d: "avatar, bio, background, accent color, particles — your page, your rules.", i: "🎨" },
-            { t: "real analytics", d: "profile views, per-link clicks, click-through-rate over 24h/7d/30d.", i: "📊" },
-            { t: "socials + links", d: "icon grid, custom buttons, reorderable, unlimited.", i: "🔗" },
+            { t: "customizable", d: "avatar, bio, background, accent color, particles — your page, your rules.", i: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8"><path d="M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4c2.3 0 4.1-1.8 4.1-4.1C21.5 6.1 17.2 2 12 2Z"/><circle cx="7.5" cy="10.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.5" r="1.5" fill="currentColor" stroke="none"/></svg> },
+            { t: "real analytics", d: "profile views, per-link clicks, click-through-rate over 24h/7d/30d.", i: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12.5" y="8" width="3" height="10"/><rect x="18" y="5" width="3" height="13"/></svg> },
+            { t: "socials + links", d: "icon grid, custom buttons, reorderable, unlimited.", i: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8"><path d="M10 14a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/></svg> },
             { t: "qr codes", d: "instant QR for your profile — download, print, share IRL.", i: "▩" },
-            { t: "themes", d: "save multiple visual themes. swap your vibe in one click.", i: "✨" },
-            { t: "custom domains", d: "point your own domain at your pews page. yourname.com.", i: "🌐" },
+            { t: "themes", d: "save multiple visual themes. swap your vibe in one click.", i: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8"><path d="m12 2 2.2 6.8H21l-5.6 4.1 2.1 6.8L12 15.8l-5.5 3.9 2.1-6.8L3 8.8h6.8Z"/></svg> },
+            { t: "custom domains", d: "point your own domain at your pews page. yourname.com.", i: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-8 w-8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg> },
           ].map((f, i) => (
             <div key={f.t}
               className="hud-corners group animate-fade-up rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_20px_50px_-20px_var(--color-primary)]"
               style={{ animationDelay: `${i * 60}ms` }}>
-              <div className="text-3xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">{f.i}</div>
+              <div className="mb-3 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">{f.i}</div>
               <div className="text-sm font-semibold text-gradient">{f.t}</div>
               <div className="mt-2 text-sm text-muted-foreground">{f.d}</div>
             </div>
