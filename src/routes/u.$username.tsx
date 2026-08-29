@@ -78,6 +78,29 @@ function CursorTrail({ color }: { color: string }) {
   );
 }
 
+function EventThemeOverlay({ theme }: { theme: string }) {
+  const shapes = useMemo(() =>
+    Array.from({ length: 30 }, (_, i) => ({
+      id: i, left: Math.random() * 100, delay: Math.random() * 8,
+      duration: 6 + Math.random() * 8, size: 12 + Math.random() * 14,
+    })), [theme]);
+
+  const glyph = theme === "snow" ? "❄" : theme === "hearts" ? "♥" : "▪";
+  const colorFor = (i: number) => theme === "confetti" ? ["#f43f5e", "#22d3ee", "#facc15", "#4ade80", "#a78bfa"][i % 5] : theme === "hearts" ? "#f472b6" : "#ffffff";
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-30 overflow-hidden">
+      {shapes.map((s) => (
+        <span key={s.id} className="absolute animate-float" style={{
+          left: `${s.left}%`, bottom: "-30px", fontSize: s.size, color: colorFor(s.id),
+          animationDelay: `${s.delay}s`, animationDuration: `${s.duration}s`,
+          ["--drift" as string]: `${(Math.random() - 0.5) * 100}px`,
+        } as React.CSSProperties}>{glyph}</span>
+      ))}
+    </div>
+  );
+}
+
 function Particles({ color }: { color: string }) {
   const items = useMemo(() =>
     Array.from({ length: 45 }, (_, i) => ({
@@ -156,14 +179,88 @@ function useTypewriter(text: string, enabled: boolean, speed = 45) {
 function PublicProfileGate() {
   const loaderData = Route.useLoaderData();
   const [unlocked, setUnlocked] = useState<{ profile: any; socials: any[]; links: any[] } | null>(null);
+  const [warningAcked, setWarningAcked] = useState(false);
+
+  function withWarningGate(data: { profile: any; socials: any[]; links: any[] }) {
+    if (data.profile.content_warning && !warningAcked) {
+      return <ContentWarningGate text={data.profile.content_warning_text} onContinue={() => setWarningAcked(true)} />;
+    }
+    return <PublicProfile profile={data.profile} socials={data.socials} links={data.links} />;
+  }
 
   if (!loaderData.locked) {
-    return <PublicProfile profile={loaderData.profile} socials={loaderData.socials} links={loaderData.links} />;
+    return withWarningGate(loaderData);
   }
   if (unlocked) {
-    return <PublicProfile profile={unlocked.profile} socials={unlocked.socials} links={unlocked.links} />;
+    return withWarningGate(unlocked);
   }
   return <LockScreen preview={loaderData} onUnlock={(data) => setUnlocked(data)} />;
+}
+
+function ContentWarningGate({ text, onContinue }: { text: string | null; onContinue: () => void }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] px-6 font-sans">
+      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-8 text-center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto h-10 w-10 text-amber-400"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+        <h1 className="mt-4 text-lg font-semibold text-white">{text?.trim() || "sensitive content ahead"}</h1>
+        <div className="mt-1 text-sm text-white/40">this page may not be suitable for everyone.</div>
+        <button onClick={onContinue}
+          className="mt-6 w-full rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20">
+          continue anyway
+        </button>
+      </div>
+    </main>
+  );
+}
+
+function ReportModal({ profileId, onClose }: { profileId: string; onClose: () => void }) {
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const REASONS = ["impersonation", "scam or fraud", "harassment or abuse", "explicit content", "spam", "other"];
+
+  async function submit() {
+    if (!reason) return;
+    setSubmitting(true);
+    const { error } = await supabase.from("profile_reports").insert({ profile_id: profileId, reason, details: details || null });
+    setSubmitting(false);
+    if (!error) setDone(true);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-6 text-white">
+        {done ? (
+          <div className="text-center">
+            <div className="text-sm font-medium">report sent — thank you.</div>
+            <button onClick={onClose} className="mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10">close</button>
+          </div>
+        ) : (
+          <>
+            <div className="text-sm font-semibold">report this page</div>
+            <div className="mt-3 space-y-1.5">
+              {REASONS.map((r) => (
+                <button key={r} onClick={() => setReason(r)}
+                  className={`w-full rounded-lg border px-3 py-2 text-left text-xs ${reason === r ? "border-primary bg-primary/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={2} placeholder="additional details (optional)"
+              className="mt-3 w-full resize-none rounded-lg border border-white/10 bg-white/5 p-2 text-xs outline-none placeholder:text-white/30" />
+            <div className="mt-3 flex gap-2">
+              <button onClick={onClose} className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">cancel</button>
+              <button onClick={submit} disabled={!reason || submitting} className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-50">
+                {submitting ? "sending…" : "submit report"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function LockScreen({ preview, onUnlock }: {
@@ -205,15 +302,31 @@ function LockScreen({ preview, onUnlock }: {
 
 export function PublicProfile({ profile, socials, links, previewMode = false }: { profile: any; socials: any[]; links: any[]; previewMode?: boolean }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [eventTheme, setEventTheme] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (previewMode) return;
+    supabase.from("site_settings").select("event_theme").eq("id", true).maybeSingle()
+      .then(({ data }) => setEventTheme(data?.event_theme ?? null));
+  }, [previewMode]);
   const [views, setViews] = useState(profile.view_count);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const lastProgressUpdate = useRef(0);
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLMediaElement>) => {
-    const t = e.currentTarget.currentTime;
+    const el = e.currentTarget;
+    const t = el.currentTime;
     if (Math.abs(t - lastProgressUpdate.current) >= 1) {
       lastProgressUpdate.current = t;
       setProgress(t);
+    }
+    if (multiTrack && el.duration && !muted) {
+      const fadeWindow = 2.5;
+      const remaining = el.duration - t;
+      if (remaining < fadeWindow) {
+        el.volume = Math.max(0, volume * volume * (remaining / fadeWindow));
+      }
     }
   };
   const [duration, setDuration] = useState(0);
@@ -277,7 +390,10 @@ export function PublicProfile({ profile, socials, links, previewMode = false }: 
   const displayName = profile.display_name || profile.username;
   const typedName = useTypewriter(displayName, profile.is_premium && profile.typewriter_name);
   const typedBio = useTypewriter(profile.bio ?? "", profile.is_premium && profile.typewriter_bio);
-  const songEmbed = useMemo(() => (profile.song_url ? songEmbedUrl(profile.song_url) : null), [profile.song_url]);
+  const [trackIndex, setTrackIndex] = useState(0);
+  const multiTrack = !!(profile.is_premium && profile.song_urls?.length > 1);
+  const activeSongUrl = multiTrack ? profile.song_urls[trackIndex % profile.song_urls.length] : profile.song_url;
+  const songEmbed = useMemo(() => (activeSongUrl ? songEmbedUrl(activeSongUrl) : null), [activeSongUrl]);
   const videoEmbed = useMemo(() => (profile.video_url ? videoEmbedUrl(profile.video_url) : null), [profile.video_url]);
   const textColor = profile.text_color || "#ffffff";
   const useCustomFont = profile.font === "__custom__" && !!profile.custom_font_url;
@@ -322,6 +438,22 @@ export function PublicProfile({ profile, socials, links, previewMode = false }: 
       videoRef.current.volume = 0;
     }
   }, [mp3Active, playing, muted]);
+
+  // Crossfade: fade the newly-started track back in after the previous one faded out.
+  useEffect(() => {
+    if (!multiTrack || muted || !audioRef.current) return;
+    const el = audioRef.current;
+    const target = volume * volume;
+    el.volume = 0;
+    let raised = 0;
+    const steps = 15;
+    const interval = setInterval(() => {
+      raised++;
+      el.volume = Math.min(target, (target * raised) / steps);
+      if (raised >= steps) clearInterval(interval);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [trackIndex, multiTrack]);
 
   function enterSite() {
     setEntered(true);
@@ -433,14 +565,18 @@ export function PublicProfile({ profile, socials, links, previewMode = false }: 
       </div>
       <Particles color={`${accent}66`} />
       {profile.cursor_trail && <CursorTrail color={accent} />}
+      {eventTheme && <EventThemeOverlay theme={eventTheme} />}
 
 
       {mp3Active && (
-        <audio ref={audioRef} src={songEmbed.src} loop
+        <audio ref={audioRef} src={songEmbed.src} loop={!multiTrack}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
           onError={() => setPlaybackFailed(true)}
-          onEnded={() => setPlaying(false)} className="hidden" />
+          onEnded={() => {
+            if (multiTrack) setTrackIndex((i) => (i + 1) % profile.song_urls.length);
+            else setPlaying(false);
+          }} className="hidden" />
       )}
 
       {profile.show_volume_control && (mp3Active || videoEmbed) && !playbackFailed && (
@@ -650,7 +786,13 @@ export function PublicProfile({ profile, socials, links, previewMode = false }: 
             made with ♥ on pews · claim yours
           </a>
         )}
+        {!previewMode && (
+          <button onClick={() => setReportOpen(true)} className="mt-2 text-[10px] font-mono uppercase tracking-widest text-white/20 hover:text-white/50 transition">
+            report this page
+          </button>
+        )}
       </section>
+      {reportOpen && <ReportModal profileId={profile.id} onClose={() => setReportOpen(false)} />}
     </main>
   );
 }
