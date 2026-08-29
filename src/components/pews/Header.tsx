@@ -43,6 +43,7 @@ export function Header() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             )}
           </button>
+          <Link to="/status" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition text-xs font-medium">status</Link>
           <Link to="/leaderboard" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition text-xs font-medium">leaderboard</Link>
           <Link to="/updates" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition text-xs font-medium">updates</Link>
           <Link to="/donate" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition text-xs font-medium">donate</Link>
