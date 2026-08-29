@@ -57,7 +57,7 @@ function Landing() {
       <Header />
 
       {/* HERO */}
-      <section className="relative z-10 mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 pt-20 text-center">
+      <section className="relative z-10 mx-auto flex min-h-[75vh] max-w-4xl flex-col items-center justify-center px-6 pt-20 text-center">
         <div className="mb-6 animate-fade-up rounded-full border border-border bg-card/40 px-4 py-1.5 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
           <span className="inline-block animate-pulse-glow rounded-full text-primary">●</span> now in beta · claim your name
         </div>
@@ -96,7 +96,7 @@ function Landing() {
       </section>
 
       {/* PRICING */}
-      <section className="relative z-10 mx-auto max-w-4xl px-6 py-20">
+      <section className="relative z-10 mx-auto max-w-4xl px-6 pb-20 pt-4">
         <div className="text-center mb-12">
           <div className="text-xs font-mono uppercase tracking-[0.4em] text-primary">pricing</div>
           <h2 className="mt-3 font-display text-4xl md:text-5xl font-bold text-gradient">free or premium.</h2>
