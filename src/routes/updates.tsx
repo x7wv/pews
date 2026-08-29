@@ -17,6 +17,22 @@ type Entry = { date: string; items: string[] };
 
 const LOG: Entry[] = [
   {
+    date: "August 29, 2026",
+    items: [
+      "guided setup wizard for new accounts — pick a starting template, add your name and bio",
+      "template gallery — restyle your page anytime with a few preset looks",
+      "demo profile — see what pews looks like before signing up",
+      "import your links straight from Linktree or Beacons",
+      "report button on every profile, feeding a real admin review queue",
+      "seasonal site-wide themes (snow, hearts, confetti) staff can toggle on/off",
+      "public status page with live health checks and incident history",
+      "shared/organization profiles — invite collaborators to co-manage a page",
+      "login streak counter",
+      "content warning gate for sensitive profiles",
+      "premium: crossfade between up to 3 background tracks instead of just one song",
+    ],
+  },
+  {
     date: "August 27, 2026",
     items: [
       "light/dark mode toggle (dark by default)",
