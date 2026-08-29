@@ -12,6 +12,9 @@ import { FONT_OPTIONS } from "@/lib/fonts";
 import { containsBlockedTerm } from "@/lib/moderation";
 import { SOCIAL_URL_PREFIX, stripPrefix, applyPrefix } from "@/lib/social-prefixes";
 import { PublicProfile } from "@/routes/u.$username";
+import { OnboardingWizard } from "@/components/pews/OnboardingWizard";
+import { PROFILE_TEMPLATES } from "@/lib/templates";
+import { LinkImporter } from "@/components/pews/LinkImporter";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -37,6 +40,8 @@ type Profile = {
   is_verified: boolean; is_premium: boolean; premium_badge_enabled: boolean; hide_branding: boolean; custom_font_url: string | null; custom_favicon_url: string | null;
   typewriter_name: boolean; typewriter_bio: boolean; parallax_tilt: boolean; layout_style: string;
   gradient_name: boolean; avatar_video_url: string | null; cursor_trail: boolean; password_protected: boolean;
+  onboarded: boolean; login_streak: number; last_login_date: string | null;
+  content_warning: boolean; content_warning_text: string | null; song_urls: string[];
   view_count: number; created_at: string;
 };
 type SocialLink = { id: string; platform: string; url: string; position: number };
@@ -90,6 +95,9 @@ function Dashboard() {
   const [originalUsername, setOriginalUsername] = useState("");
   const [profileTimedOut, setProfileTimedOut] = useState(false);
   const [draftTheme, setDraftTheme] = useState<{ name: string; accent: string; background: string; particle: string } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [collabOptions, setCollabOptions] = useState<{ id: string; username: string }[]>([]);
+  const [collabUsernameInput, setCollabUsernameInput] = useState("");
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth" });
@@ -98,7 +106,18 @@ function Dashboard() {
   useEffect(() => {
     if (!session) return;
     (async () => {
-      const uid = session.user.id;
+      const { data: collabRows } = await supabase.from("profile_collaborators").select("profile_id").eq("user_id", session.user.id);
+      if (collabRows && collabRows.length > 0) {
+        const { data: collabProfiles } = await supabase.from("profiles").select("id, username").in("id", collabRows.map((c) => c.profile_id));
+        setCollabOptions(collabProfiles ?? []);
+      }
+    })();
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    (async () => {
+      const uid = editingId || session.user.id;
       const [p, s, l, t, d] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
         supabase.from("social_links").select("*").eq("user_id", uid).order("position"),
@@ -108,6 +127,16 @@ function Dashboard() {
       ]);
       if (p.data) {
         const pr = p.data as Profile;
+        if (uid === session.user.id) {
+          const today = new Date().toISOString().slice(0, 10);
+          if (pr.last_login_date !== today) {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            const newStreak = pr.last_login_date === yesterday ? pr.login_streak + 1 : 1;
+            pr.login_streak = newStreak;
+            pr.last_login_date = today;
+            supabase.from("profiles").update({ login_streak: newStreak, last_login_date: today }).eq("id", uid).then(() => {});
+          }
+        }
         setProfile(pr);
         lastSavedProfileRef.current = pr;
         setOriginalUsername(pr.username.trim().toLowerCase());
@@ -118,7 +147,7 @@ function Dashboard() {
       if (t.data) setThemes(t.data as Theme[]);
       if (d.data) setDomain(d.data as Domain);
     })();
-  }, [session]);
+  }, [session, editingId]);
 
   useEffect(() => {
     if (!session || profile) return;
@@ -191,6 +220,8 @@ function Dashboard() {
       premium_badge_enabled: profile.premium_badge_enabled, hide_branding: profile.hide_branding, custom_font_url: profile.custom_font_url, custom_favicon_url: profile.custom_favicon_url,
       typewriter_name: profile.typewriter_name, typewriter_bio: profile.typewriter_bio, parallax_tilt: profile.parallax_tilt, layout_style: profile.layout_style,
       gradient_name: profile.gradient_name, avatar_video_url: profile.avatar_video_url, cursor_trail: profile.cursor_trail,
+      content_warning: profile.content_warning, content_warning_text: profile.content_warning_text,
+      song_urls: profile.song_urls,
     }).eq("id", profile.id);
     if (!silent) setSaving(false);
     if (error) { if (!silent) toast.error(error.message); }
@@ -241,10 +272,10 @@ function Dashboard() {
     return () => clearTimeout(t);
   }, [profile]);
 
-  async function addSocial(platform: string = "twitter") {
-    if (!session) return;
+  async function addSocial(platform: string = "twitter", url: string = "") {
+    if (!session || !profile) return;
     const { data, error } = await supabase.from("social_links").insert({
-      user_id: session.user.id, platform, url: "", position: socials.length,
+      user_id: profile.id, platform, url, position: socials.length,
     }).select().single();
     if (error) return toast.error(error.message);
     setSocials([...socials, data as SocialLink]);
@@ -258,14 +289,14 @@ function Dashboard() {
     setSocials((prev) => prev.filter((s) => s.id !== id));
     await supabase.from("social_links").delete().eq("id", id);
   }
-  async function addLink() {
-    if (!session) return;
+  async function addLink(title: string = "new link", url: string = "https://") {
+    if (!session || !profile) return;
     const maxLinks = profile?.is_premium ? 5 : 1;
     if (links.length >= maxLinks) {
       return toast.error(`${profile?.is_premium ? "premium accounts get 5 links" : "free accounts get 1 link — upgrade to premium for up to 5"} — delete an existing one to add a different link`);
     }
     const { data, error } = await supabase.from("custom_links").insert({
-      user_id: session.user.id, title: "new link", url: "https://", position: links.length,
+      user_id: profile.id, title, url, position: links.length,
     }).select().single();
     if (error) return toast.error(error.message);
     setLinks([...links, data as CustomLink]);
@@ -365,15 +396,49 @@ function Dashboard() {
   const totalClicks = links.reduce((a, b) => a + b.click_count, 0);
   const profileUrl = `${typeof window !== "undefined" ? window.location.origin : "https://pews.lol"}/u/${profile.username}`;
 
+  if (!profile.onboarded) {
+    return (
+      <OnboardingWizard
+        username={profile.username}
+        onComplete={async ({ template, display_name, bio }) => {
+          const patch: Record<string, unknown> = { onboarded: true, display_name: display_name || null, bio: bio || null };
+          if (template) Object.assign(patch, template.values);
+          setProfile({ ...profile, ...patch } as Profile);
+          await supabase.from("profiles").update(patch as never).eq("id", profile.id);
+        }}
+      />
+    );
+  }
+
   return (
     <main className="relative min-h-screen overflow-x-hidden font-sans pb-20">
       <div className="pointer-events-none fixed inset-0 -z-10 grid-overlay opacity-60" />
       <div className="pointer-events-none fixed inset-0 -z-10" style={{ background: "radial-gradient(ellipse 800px 500px at 50% -10%, oklch(0.62 0.19 250 / 12%), transparent 70%)" }} />
       <Header />
       <section className="mx-auto max-w-6xl px-4 pt-24">
+        {collabOptions.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">editing:</span>
+            <select value={editingId || session!.user.id} onChange={(e) => setEditingId(e.target.value === session!.user.id ? null : e.target.value)}
+              className="rounded-lg border border-border bg-background/30 px-2 py-1 text-xs outline-none focus:border-primary">
+              <option value={session!.user.id}>your page</option>
+              {collabOptions.map((c) => (
+                <option key={c.id} value={c.id}>@{c.username} (collaborator)</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold">your page</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-3xl font-bold">your page</h1>
+              {profile.login_streak > 1 && (
+                <span className="flex items-center gap-1 rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-xs font-medium text-orange-400">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5"><path d="M12 2c1 3-2 4-2 7a4 4 0 0 0 8 0c1 2 1 4 0 6a6 6 0 1 1-10-6c0-3 2-5 4-7z"/></svg>
+                  {profile.login_streak} day streak
+                </span>
+              )}
+            </div>
             <div className="text-sm text-muted-foreground mt-1">
               live at{" "}
               <Link to="/u/$username" params={{ username: profile.username }} className="text-primary hover:underline font-mono">
@@ -483,7 +548,24 @@ function Dashboard() {
                 <input value={profile.accent_color} onChange={(e) => setProfile({ ...profile, accent_color: e.target.value, no_glow: false })} className="input flex-1" />
               </div>
             </Field>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium">content warning</div>
+                <div className="text-[11px] text-muted-foreground">show a "click to continue" gate before visitors see your page</div>
+              </div>
+              <Checkmark checked={profile.content_warning} onToggle={() => setProfile({ ...profile, content_warning: !profile.content_warning })} />
+            </div>
+            {profile.content_warning && (
+              <Field label="warning message">
+                <input value={profile.content_warning_text ?? ""} onChange={(e) => setProfile({ ...profile, content_warning_text: e.target.value })}
+                  placeholder="sensitive content ahead" className="input" />
+              </Field>
+            )}
           </Card>
+        )}
+
+        {tab === "profile" && !editingId && (
+          <CollaboratorManager profileId={profile.id} />
         )}
 
         {tab === "appearance" && (
@@ -668,6 +750,12 @@ function Dashboard() {
 
         {tab === "links" && (
           <>
+            <LinkImporter
+              onImportSocial={(platform, url) => addSocial(platform, url)}
+              onImportCustom={(title, url) => addLink(title, url)}
+              existingSocialPlatforms={socials.map((s) => s.platform)}
+              canAddCustomLink={links.length < (profile.is_premium ? 5 : 1)}
+            />
             <Card title="socials">
               <div>
                 <div className="mb-1 text-sm font-semibold">Link your social media profiles.</div>
@@ -730,7 +818,7 @@ function Dashboard() {
               })}
             </Card>
             <Card title="links" action={
-              <button onClick={addLink} disabled={links.length >= (profile.is_premium ? 5 : 1)}
+              <button onClick={() => addLink()} disabled={links.length >= (profile.is_premium ? 5 : 1)}
                 className="btn-sm disabled:opacity-30 disabled:pointer-events-none">+ add</button>
             }>
               {links.length === 0 && <Empty>no links yet.</Empty>}
@@ -779,6 +867,7 @@ function Dashboard() {
             onDelete={deleteTheme}
             onClearTheme={clearTheme}
           />
+          <TemplateGallery onApply={(patch) => setProfile({ ...profile, ...patch })} />
           <TemplateExporter profile={profile} onImport={(patch) => setProfile({ ...profile, ...patch })} />
           </>
         )}
@@ -826,6 +915,20 @@ function Dashboard() {
               <Field label="video avatar">
                 <MediaDropzone value={profile.avatar_video_url} onUploaded={(url) => setProfile({ ...profile, avatar_video_url: url })} accept="video/mp4,.mp4" label="drag & drop a short mp4 clip" />
                 <div className="mt-1 text-[11px] text-muted-foreground">a short looping video instead of a static avatar image. clear it to go back to your regular avatar</div>
+              </Field>
+              <Field label="music crossfade">
+                <div className="mt-1 text-[11px] text-muted-foreground mb-2">add up to 3 tracks — your page will crossfade between them instead of playing just one song.</div>
+                <div className="space-y-2">
+                  {profile.song_urls.map((url, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded-xl border border-border bg-background/30 px-3 py-2">
+                      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{decodeURIComponent(url.split("/").pop() ?? "")}</span>
+                      <button onClick={() => setProfile({ ...profile, song_urls: profile.song_urls.filter((_, xi) => xi !== i) })} className="btn-sm-ghost flex-shrink-0">×</button>
+                    </div>
+                  ))}
+                  {profile.song_urls.length < 3 && (
+                    <MediaDropzone value={null} onUploaded={(url) => url && setProfile({ ...profile, song_urls: [...profile.song_urls, url] })} accept="audio/mpeg,.mp3" label={`add track ${profile.song_urls.length + 1} of 3`} />
+                  )}
+                </div>
               </Field>
               <div className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-4 py-3">
                 <div>
@@ -1054,6 +1157,80 @@ const TEMPLATE_STYLE_FIELDS = [
   "show_volume_control", "show_song_bar", "layout_style", "gradient_name",
   "parallax_tilt", "typewriter_name", "typewriter_bio", "cursor_trail",
 ] as const;
+
+function CollaboratorManager({ profileId }: { profileId: string }) {
+  const [collaborators, setCollaborators] = useState<{ id: string; user_id: string; username: string }[]>([]);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("profile_collaborators").select("id, user_id").eq("profile_id", profileId);
+      if (!data || data.length === 0) return setCollaborators([]);
+      const { data: profiles } = await supabase.from("profiles").select("id, username").in("id", data.map((c) => c.user_id));
+      setCollaborators(data.map((c) => ({ ...c, username: profiles?.find((p) => p.id === c.user_id)?.username || "unknown" })));
+    })();
+  }, [profileId]);
+
+  async function addCollaborator() {
+    const uname = usernameInput.trim().toLowerCase();
+    if (!uname) return;
+    setLoading(true);
+    const { data: target } = await supabase.from("profiles").select("id").eq("username", uname).maybeSingle();
+    setLoading(false);
+    if (!target) return toast.error("no account with that username.");
+    if (target.id === profileId) return toast.error("that's your own account.");
+    const { data, error } = await supabase.from("profile_collaborators").insert({ profile_id: profileId, user_id: target.id }).select().single();
+    if (error) return toast.error(error.message.includes("duplicate") ? "already a collaborator." : error.message);
+    setCollaborators((prev) => [...prev, { ...data, username: uname }]);
+    setUsernameInput("");
+    toast.success(`@${uname} can now co-manage your page.`);
+  }
+
+  async function removeCollaborator(id: string) {
+    await supabase.from("profile_collaborators").delete().eq("id", id);
+    setCollaborators((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  return (
+    <Card title="collaborators">
+      <div className="text-[11px] text-muted-foreground">
+        let other pews accounts co-manage this page — they can edit your links, socials, and appearance from their own dashboard.
+      </div>
+      {collaborators.length === 0 && <Empty>no collaborators yet.</Empty>}
+      {collaborators.map((c) => (
+        <div key={c.id} className="flex items-center justify-between rounded-xl border border-border bg-background/30 px-3 py-2">
+          <span className="text-sm">@{c.username}</span>
+          <button onClick={() => removeCollaborator(c.id)} className="btn-sm-ghost">remove</button>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <input value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="username to add" className="input flex-1" />
+        <button onClick={addCollaborator} disabled={loading} className="btn-sm disabled:opacity-50">add</button>
+      </div>
+    </Card>
+  );
+}
+
+function TemplateGallery({ onApply }: { onApply: (patch: Record<string, unknown>) => void }) {
+  return (
+    <Card title="template gallery">
+      <div className="text-[11px] text-muted-foreground">pick a starting look — this overwrites your current colors, font, and layout.</div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {PROFILE_TEMPLATES.map((t) => (
+          <button key={t.id} onClick={() => { onApply(t.values); toast.success(`applied "${t.name}" — remember to save`); }}
+            className="rounded-xl border border-border bg-background/30 p-3 text-left transition hover:border-primary/40">
+            <div className="mb-2 h-10 w-full rounded-lg" style={{ background: t.preview.bg, boxShadow: `inset 0 0 0 2px ${t.preview.accent}55` }}>
+              <div className="h-2 w-2 translate-x-2 translate-y-2 rounded-full" style={{ background: t.preview.accent }} />
+            </div>
+            <div className="text-sm font-medium">{t.name}</div>
+            <div className="text-[11px] text-muted-foreground">{t.description}</div>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
 
 function TemplateExporter({ profile, onImport }: { profile: Profile; onImport: (patch: Partial<Profile>) => void }) {
   const [pasted, setPasted] = useState("");
