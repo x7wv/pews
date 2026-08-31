@@ -61,7 +61,7 @@ function Landing() {
         <div className="mb-6 animate-fade-up rounded-full border border-border bg-card/40 px-4 py-1.5 text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
           <span className="inline-block animate-pulse-glow rounded-full text-primary">●</span> now in beta · claim your name
         </div>
-        <h1 className="font-display text-6xl md:text-8xl font-bold tracking-tight text-gradient animate-fade-up" style={{ animationDelay: "0.05s" }}>
+        <h1 className="font-display text-5xl sm:text-6xl md:text-8xl font-bold tracking-tight text-gradient animate-fade-up" style={{ animationDelay: "0.05s" }}>
           one link. all you.
         </h1>
         <p className="mt-6 max-w-xl text-lg text-muted-foreground animate-fade-up" style={{ animationDelay: "0.1s" }}>
@@ -74,14 +74,16 @@ function Landing() {
             const u = handle.trim().replace(/[^a-zA-Z0-9_]/g, "");
             window.location.href = `/auth?mode=signup&u=${encodeURIComponent(u)}`;
           }}
-          className="hud-corners relative mt-10 flex w-full max-w-md items-center gap-2 overflow-hidden rounded-2xl border border-border bg-card/60 p-2 backdrop-blur-xl animate-fade-up"
+          className="hud-corners relative mt-10 flex w-full max-w-md items-center gap-1.5 overflow-hidden rounded-2xl border border-border bg-card/60 p-2 backdrop-blur-xl animate-fade-up sm:gap-2"
           style={{ animationDelay: "0.15s" }}
         >
           <span className="pointer-events-none absolute left-0 right-0 h-px" style={{ background: "linear-gradient(90deg, transparent, oklch(0.62 0.19 250 / 80%), transparent)", animation: "scan-sweep 3s ease-in-out infinite" }} />
-          <div className="pl-3 text-sm font-mono text-muted-foreground">pews.lol/u/</div>
+          <div className="flex-shrink-0 pl-2 text-xs font-mono text-muted-foreground sm:pl-3 sm:text-sm">
+            <span className="hidden sm:inline">pews.lol</span>/u/
+          </div>
           <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="yourname"
-            className="flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
-          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all duration-200 hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_var(--color-primary)] active:translate-y-0">
+            className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground/60" />
+          <button type="submit" className="flex-shrink-0 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-all duration-200 hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_var(--color-primary)] active:translate-y-0 sm:px-4">
             claim →
           </button>
         </form>
