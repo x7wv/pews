@@ -17,6 +17,15 @@ type Entry = { date: string; items: string[] };
 
 const LOG: Entry[] = [
   {
+    date: "August 31, 2026",
+    items: [
+      "added a free vs premium pricing comparison to the homepage",
+      "fixed the mobile header — several links were getting pushed off-screen on phones with no way to reach them; now behind a proper menu button",
+      "fixed the claim button getting cut off on smaller phones",
+      "tightened up the homepage layout on mobile",
+    ],
+  },
+  {
     date: "August 29, 2026",
     items: [
       "guided setup wizard for new accounts — pick a starting template, add your name and bio",
