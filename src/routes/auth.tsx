@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Header } from "@/components/pews/Header";
 
 const search = z.object({
-  mode: z.enum(["signin", "signup"]).optional(),
+  mode: z.enum(["signin", "signup", "forgot", "reset"]).optional(),
   u: z.string().optional(),
 });
 
@@ -26,21 +26,32 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const { mode: initialMode, u } = Route.useSearch();
-  const [mode, setMode] = useState<"signin" | "signup">(initialMode ?? "signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "reset">(initialMode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [username, setUsername] = useState(u ?? "");
   const [usernameCharError, setUsernameCharError] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [busy, setBusy] = useState(false);
   const [awaitingCode, setAwaitingCode] = useState(false);
   const [code, setCode] = useState("");
+  const [resetLinkSent, setResetLinkSent] = useState(false);
+  const [recoverySessionReady, setRecoverySessionReady] = useState(false);
   const { session } = useSession();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (session) navigate({ to: "/dashboard" });
-  }, [session, navigate]);
+    if (mode !== "reset") return;
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRecoverySessionReady(true);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [mode]);
+
+  useEffect(() => {
+    if (session && mode !== "reset") navigate({ to: "/dashboard" });
+  }, [session, navigate, mode]);
 
   useEffect(() => {
     if (mode !== "signup") return;
@@ -88,7 +99,16 @@ function AuthPage() {
           toast.success("enter the code we emailed you");
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        let loginEmail = email.trim();
+        if (!loginEmail.includes("@")) {
+          const { data: resolvedEmail, error: lookupError } = await supabase.rpc("get_email_for_username", { p_username: loginEmail });
+          if (lookupError || !resolvedEmail) {
+            toast.error("no account found with that username");
+            return;
+          }
+          loginEmail = resolvedEmail;
+        }
+        const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (error) throw error;
       }
     } catch (err) {
@@ -132,6 +152,46 @@ function AuthPage() {
     }
   }
 
+  async function sendResetLink(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      let resetEmail = email.trim();
+      if (!resetEmail.includes("@")) {
+        const { data: resolvedEmail } = await supabase.rpc("get_email_for_username", { p_username: resetEmail });
+        if (!resolvedEmail) {
+          toast.error("no account found with that username");
+          return;
+        }
+        resetEmail = resolvedEmail;
+      }
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin + "/auth?mode=reset",
+      });
+      if (error) throw error;
+      setResetLinkSent(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "couldn't send reset link");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("password updated — signing you in");
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "couldn't update password");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function google() {
     setBusy(true);
     try {
@@ -154,10 +214,13 @@ function AuthPage() {
         <div className="hud-corners rounded-3xl border border-border bg-card/60 backdrop-blur-2xl p-8 animate-fade-up">
           <div className="text-center">
             <h1 className="font-display text-3xl font-bold text-gradient">
-              {awaitingCode ? "check your email" : mode === "signup" ? "claim your name" : "welcome back"}
+              {awaitingCode ? "check your email" : mode === "forgot" ? "reset your password" : mode === "reset" ? "set a new password" : mode === "signup" ? "claim your name" : "welcome back"}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {awaitingCode ? `we sent a code to ${email}` : mode === "signup" ? "your bio page in 30 seconds." : "sign in to your pews account."}
+              {awaitingCode ? `we sent a code to ${email}`
+                : mode === "forgot" ? "enter your email or username and we'll send you a reset link."
+                : mode === "reset" ? "choose a new password for your account."
+                : mode === "signup" ? "your bio page in 30 seconds." : "sign in to your pews account."}
             </p>
           </div>
 
@@ -184,6 +247,41 @@ function AuthPage() {
               </div>
               <button type="button" onClick={() => { setAwaitingCode(false); setCode(""); }}
                 className="w-full text-center text-xs text-muted-foreground hover:text-foreground">← back</button>
+            </form>
+          ) : mode === "forgot" ? (
+            resetLinkSent ? (
+              <div className="mt-6 text-center">
+                <div className="text-sm text-foreground">check your email for a reset link.</div>
+                <button onClick={() => { setMode("signin"); setResetLinkSent(false); }} className="mt-4 text-xs text-primary hover:underline">← back to sign in</button>
+              </div>
+            ) : (
+              <form onSubmit={sendResetLink} className="mt-6 space-y-3">
+                <div>
+                  <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">email or username</label>
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus
+                    className="mt-1 w-full rounded-xl border border-border bg-background/40 px-3 py-2 text-sm outline-none focus:border-primary/60" />
+                </div>
+                <button type="submit" disabled={busy}
+                  className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
+                  {busy ? "..." : "send reset link"}
+                </button>
+                <button type="button" onClick={() => setMode("signin")} className="w-full text-center text-xs text-muted-foreground hover:text-foreground">← back to sign in</button>
+              </form>
+            )
+          ) : mode === "reset" ? (
+            <form onSubmit={updatePassword} className="mt-6 space-y-3">
+              {!recoverySessionReady && (
+                <div className="text-center text-xs text-muted-foreground">waiting for your reset link to verify — if this doesn't update in a few seconds, the link may have expired.</div>
+              )}
+              <div>
+                <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">new password</label>
+                <input type="password" required minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-border bg-background/40 px-3 py-2 text-sm outline-none focus:border-primary/60" />
+              </div>
+              <button type="submit" disabled={busy || !recoverySessionReady}
+                className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50">
+                {busy ? "..." : "update password"}
+              </button>
             </form>
           ) : (
           <>
@@ -226,12 +324,17 @@ function AuthPage() {
               </div>
             )}
             <div>
-              <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">email</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+              <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">{mode === "signin" ? "email or username" : "email"}</label>
+              <input type={mode === "signin" ? "text" : "email"} required value={email} onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-border bg-background/40 px-3 py-2 text-sm outline-none focus:border-primary/60" />
             </div>
             <div>
-              <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">password</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">password</label>
+                {mode === "signin" && (
+                  <button type="button" onClick={() => setMode("forgot")} className="text-[11px] text-primary hover:underline">forgot password?</button>
+                )}
+              </div>
               <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-border bg-background/40 px-3 py-2 text-sm outline-none focus:border-primary/60" />
             </div>
