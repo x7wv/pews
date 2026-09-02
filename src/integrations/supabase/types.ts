@@ -434,6 +434,7 @@ export type Database = {
       get_public_profile: { Args: { p_username: string }; Returns: Json }
       verify_profile_password: { Args: { p_username: string; p_password: string }; Returns: Json }
       set_profile_password: { Args: { p_password: string }; Returns: undefined }
+      get_email_for_username: { Args: { p_username: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
