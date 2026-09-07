@@ -34,4 +34,10 @@ export const PLATFORM_BRAND_COLORS: Record<string, string> = {
   onlyfans: "#00AFF0",
   fansly: "#7B2FF7",
   discorduser: "#5865F2",
+  epicgames: "#000000",
+  steam: "#1B2838",
+  roblox: "#000000",
+  minecraft: "#5D8C3F",
+  zelle: "#6D1ED4",
+  kick: "#53FC18",
 };
