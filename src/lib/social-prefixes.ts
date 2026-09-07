@@ -27,11 +27,16 @@ export const SOCIAL_URL_PREFIX: Record<string, string> = {
   playstation: "https://psnprofiles.com/",
   applemusic: "https://music.apple.com/profile/",
   email: "mailto:",
+  epicgames: "https://store.epicgames.com/u/",
+  steam: "https://steamcommunity.com/id/",
+  kick: "https://kick.com/",
 };
 
 /** Platforms intentionally left out: discord (invite links vary), website (arbitrary url),
  *  email (mailto: handled separately), playstation/xbox/applemusic (no stable public profile prefix),
- *  bitcoin/ethereum/litecoin/monero/wallet (these are addresses, not urls). */
+ *  bitcoin/ethereum/litecoin/monero/wallet (these are addresses, not urls),
+ *  roblox (public profiles are ID-based, not username-based — paste the full URL),
+ *  minecraft/zelle (no public profile page — handled as copy-to-clipboard instead). */
 
 export function stripPrefix(platform: string, url: string): string {
   const prefix = SOCIAL_URL_PREFIX[platform];
