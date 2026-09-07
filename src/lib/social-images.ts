@@ -10,6 +10,12 @@ import soundcloud from "@/assets/soundcloud.png";
 import threads from "@/assets/threads.png";
 import venmo from "@/assets/venmo.png";
 import xbox from "@/assets/xbox.png";
+import epicgames from "@/assets/epicgames.png";
+import steam from "@/assets/steam.png";
+import roblox from "@/assets/roblox.png";
+import minecraft from "@/assets/minecraft.png";
+import zelle from "@/assets/zelle.png";
+import kick from "@/assets/kick.png";
 
 export const PLATFORM_IMAGES: Record<string, string> = {
   applemusic,
@@ -24,4 +30,10 @@ export const PLATFORM_IMAGES: Record<string, string> = {
   threads,
   venmo,
   xbox,
+  epicgames,
+  steam,
+  roblox,
+  minecraft,
+  zelle,
+  kick,
 };
