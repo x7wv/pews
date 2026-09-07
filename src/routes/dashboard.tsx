@@ -58,7 +58,7 @@ const PLATFORMS = [
   "epicgames", "steam", "roblox", "minecraft", "zelle", "kick",
   "bitcoin", "ethereum", "litecoin", "monero", "wallet",
 ];
-const COPY_PLATFORMS = new Set(["discorduser", "minecraft", "zelle"]);
+const COPY_PLATFORMS = new Set(["discorduser", "minecraft", "zelle", "epicgames"]);
 const CRYPTO_PLATFORMS = new Set(["bitcoin", "ethereum", "litecoin", "monero", "wallet"]);
 const TABS = ["profile", "appearance", "fonts", "links", "analytics", "themes", "domain", "premium", "share"] as const;
 type Tab = typeof TABS[number];
@@ -810,7 +810,7 @@ function Dashboard() {
                       <input
                         value={s.url}
                         onChange={(e) => updateSocial(s.id, { url: e.target.value })}
-                        placeholder={CRYPTO_PLATFORMS.has(s.platform) ? "wallet address" : s.platform === "zelle" ? "phone or email" : s.platform === "discorduser" ? "your discord username" : s.platform === "minecraft" ? "your minecraft username" : s.platform === "roblox" ? "https://roblox.com/users/.../profile" : "https://..."}
+                        placeholder={CRYPTO_PLATFORMS.has(s.platform) ? "wallet address" : s.platform === "zelle" ? "phone or email" : s.platform === "discorduser" ? "your discord username" : s.platform === "minecraft" ? "your minecraft username" : s.platform === "epicgames" ? "your Epic display name" : s.platform === "roblox" ? "https://roblox.com/users/.../profile" : "https://..."}
                         className="input flex-1" />
                     )}
                     <button onClick={() => deleteSocial(s.id)} className="btn-sm-ghost">×</button>
