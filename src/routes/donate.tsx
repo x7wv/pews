@@ -14,7 +14,7 @@ export const Route = createFileRoute("/donate")({
   component: Donate,
 });
 
-const PAYPAL_USERNAME = "OwenKilgore";
+const PAYPAL_USERNAME = "gigglesaurusscamazon";
 const PRESET_AMOUNTS = [1, 5, 10, 20];
 
 function Donate() {
